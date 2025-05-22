@@ -16,4 +16,6 @@ public class Permission {
 
     @Column(unique = true, nullable = false)
     private String name;  // e.g., "USER_READ", "USER_CREATE"
+
+    private String description;
 }

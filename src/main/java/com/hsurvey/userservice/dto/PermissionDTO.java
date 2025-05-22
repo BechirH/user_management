@@ -1,6 +1,5 @@
 package com.hsurvey.userservice.dto;
 
-
 import lombok.Data;
 
 @Data

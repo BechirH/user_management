@@ -7,6 +7,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AuthResponse {
+    private boolean success;
     private String token;
     private String username;
     private String message;

@@ -8,7 +8,8 @@ import java.util.Set;
 public class UserDTO {
     private Long id;
     private String username;
-    @JsonIgnore // Prevent password from appearing in responses
+    private String email;
+    @JsonIgnore
     private String password;
     private Set<String> roles;
 }

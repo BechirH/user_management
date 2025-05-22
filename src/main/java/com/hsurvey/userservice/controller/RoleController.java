@@ -1,6 +1,5 @@
 package com.hsurvey.userservice.controller;
 
-
 import com.hsurvey.userservice.dto.RoleDTO;
 import com.hsurvey.userservice.service.RoleService;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,14 +17,38 @@ public class RoleController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('ROLE_CREATE')")
+    @PreAuthorize("hasAnyAuthority('ROLE_CREATE','ADMIN_ROOT')")
     public RoleDTO createRole(@RequestBody RoleDTO roleDTO) {
         return roleService.createRole(roleDTO);
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('ROLE_READ')")
+    @PreAuthorize("hasAnyAuthority('ROLE_READ','ADMIN_ROOT')")
     public List<RoleDTO> getAllRoles() {
         return roleService.getAllRoles();
+    }
+
+    @GetMapping("/{roleId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_READ','ADMIN_ROOT')")
+    public RoleDTO getRoleById(@PathVariable Long roleId) {
+        return roleService.getRoleById(roleId);
+    }
+
+    @DeleteMapping("/{roleId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_DELETE','ADMIN_ROOT')")
+    public void deleteRole(@PathVariable Long roleId) {
+        roleService.deleteRole(roleId);
+    }
+
+    @PostMapping("/{roleId}/permissions/{permissionId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_UPDATE','ADMIN_ROOT')")
+    public void addPermissionToRole(@PathVariable Long roleId, @PathVariable Long permissionId) {
+        roleService.addPermissionToRole(roleId, permissionId);
+    }
+
+    @DeleteMapping("/{roleId}/permissions/{permissionId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_UPDATE','ADMIN_ROOT')")
+    public void removePermissionFromRole(@PathVariable Long roleId, @PathVariable Long permissionId) {
+        roleService.removePermissionFromRole(roleId, permissionId);
     }
 }
