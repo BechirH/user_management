@@ -6,6 +6,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/roles")
@@ -30,25 +31,25 @@ public class RoleController {
 
     @GetMapping("/{roleId}")
     @PreAuthorize("hasAnyAuthority('ROLE_READ','ADMIN_ROOT')")
-    public RoleDTO getRoleById(@PathVariable Long roleId) {
+    public RoleDTO getRoleById(@PathVariable UUID roleId) {
         return roleService.getRoleById(roleId);
     }
 
     @DeleteMapping("/{roleId}")
     @PreAuthorize("hasAnyAuthority('ROLE_DELETE','ADMIN_ROOT')")
-    public void deleteRole(@PathVariable Long roleId) {
+    public void deleteRole(@PathVariable UUID roleId) {
         roleService.deleteRole(roleId);
     }
 
     @PostMapping("/{roleId}/permissions/{permissionId}")
     @PreAuthorize("hasAnyAuthority('ROLE_UPDATE','ADMIN_ROOT')")
-    public void addPermissionToRole(@PathVariable Long roleId, @PathVariable Long permissionId) {
+    public void addPermissionToRole(@PathVariable UUID roleId, @PathVariable UUID permissionId) {
         roleService.addPermissionToRole(roleId, permissionId);
     }
 
     @DeleteMapping("/{roleId}/permissions/{permissionId}")
     @PreAuthorize("hasAnyAuthority('ROLE_UPDATE','ADMIN_ROOT')")
-    public void removePermissionFromRole(@PathVariable Long roleId, @PathVariable Long permissionId) {
+    public void removePermissionFromRole(@PathVariable UUID roleId, @PathVariable UUID permissionId) {
         roleService.removePermissionFromRole(roleId, permissionId);
     }
 }

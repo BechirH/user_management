@@ -7,6 +7,7 @@ import com.hsurvey.userservice.repositories.PermissionRepository;
 import com.hsurvey.userservice.service.PermissionService;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,7 +29,7 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     @Override
-    public PermissionDTO getPermissionById(Long permissionId) {
+    public PermissionDTO getPermissionById(UUID permissionId) {
         Permission permission = permissionRepository.findById(permissionId)
                 .orElseThrow(() -> new RuntimeException("Permission not found"));
         return permissionMapper.toDto(permission);
@@ -47,12 +48,13 @@ public class PermissionServiceImpl implements PermissionService {
                 .orElseThrow(() -> new RuntimeException("Permission not found"));
 
         existingPermission.setName(permissionDTO.getName());
+        existingPermission.setDescription(permissionDTO.getDescription());
         Permission updatedPermission = permissionRepository.save(existingPermission);
         return permissionMapper.toDto(updatedPermission);
     }
 
     @Override
-    public void deletePermission(Long permissionId) {
+    public void deletePermission(UUID permissionId) {
         permissionRepository.deleteById(permissionId);
     }
 }

@@ -1,5 +1,6 @@
 package com.hsurvey.userservice.service.impl;
 
+import com.hsurvey.userservice.dto.CreateUserDTO;
 import com.hsurvey.userservice.dto.UserDTO;
 import com.hsurvey.userservice.entities.User;
 import com.hsurvey.userservice.entities.Role;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,9 +35,22 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserDTO createUser(UserDTO userDTO) {
-        User user = userMapper.toEntity(userDTO);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+    public UserDTO createUser(CreateUserDTO createUserDTO) {
+        // Check if username already exists
+        if (userRepository.existsByUsername(createUserDTO.getUsername())) {
+            throw new IllegalArgumentException("Username already exists");
+        }
+
+        // Check if email already exists
+        if (userRepository.existsByEmail(createUserDTO.getEmail())) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+
+        User user = new User();
+        user.setUsername(createUserDTO.getUsername());
+        user.setEmail(createUserDTO.getEmail());
+        user.setPassword(passwordEncoder.encode(createUserDTO.getPassword()));
+
         user = userRepository.save(user);
         return userMapper.toDto(user);
     }
@@ -48,7 +63,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO getUserById(Long id) {
+    public UserDTO getUserById(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
         return userMapper.toDto(user);
@@ -56,7 +71,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserDTO updateUser(Long id, UserDTO userDTO) {
+    public UserDTO updateUser(UUID id, UserDTO userDTO) {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
 
@@ -73,7 +88,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void deleteUser(Long id) {
+    public void deleteUser(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
         userRepository.delete(user);
@@ -81,7 +96,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserDTO addRoleToUser(Long userId, Long roleId) {
+    public UserDTO addRoleToUser(UUID userId, UUID roleId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
         Role role = roleRepository.findById(roleId)
@@ -94,7 +109,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserDTO removeRoleFromUser(Long userId, Long roleId) {
+    public UserDTO removeRoleFromUser(UUID userId, UUID roleId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
         Role role = roleRepository.findById(roleId)

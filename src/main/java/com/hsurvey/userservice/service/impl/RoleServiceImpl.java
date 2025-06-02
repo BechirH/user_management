@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,7 +47,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional(readOnly = true)
-    public RoleDTO getRoleById(Long roleId) {
+    public RoleDTO getRoleById(UUID roleId) {
         return roleRepository.findById(roleId)
                 .map(roleMapper::toDto)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
@@ -54,7 +55,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
-    public void deleteRole(Long roleId) {
+    public void deleteRole(UUID roleId) {
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
         roleRepository.delete(role);
@@ -62,7 +63,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
-    public void addPermissionToRole(Long roleId, Long permissionId) {
+    public void addPermissionToRole(UUID roleId, UUID permissionId) {
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
 
@@ -70,14 +71,13 @@ public class RoleServiceImpl implements RoleService {
                 .orElseThrow(() -> new EntityNotFoundException("Permission not found with id: " + permissionId));
 
         if (role.getPermissions().add(permission)) {
-
             roleRepository.save(role);
         }
     }
 
     @Override
     @Transactional
-    public void removePermissionFromRole(Long roleId, Long permissionId) {
+    public void removePermissionFromRole(UUID roleId, UUID permissionId) {
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
 
@@ -87,7 +87,6 @@ public class RoleServiceImpl implements RoleService {
             throw new EntityNotFoundException(
                     "Permission not found with id: " + permissionId + " in role with id: " + roleId);
         }
-
 
         roleRepository.save(role);
     }

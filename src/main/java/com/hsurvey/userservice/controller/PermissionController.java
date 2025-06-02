@@ -6,6 +6,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/permissions")
@@ -30,7 +31,7 @@ public class PermissionController {
 
     @GetMapping("/{permissionId}")
     @PreAuthorize("hasAnyAuthority('PERMISSION_READ','ADMIN_ROOT')")
-    public PermissionDTO getPermissionById(@PathVariable Long permissionId) {
+    public PermissionDTO getPermissionById(@PathVariable UUID permissionId) {
         return permissionService.getPermissionById(permissionId);
     }
 
@@ -42,7 +43,7 @@ public class PermissionController {
 
     @DeleteMapping("/{permissionId}")
     @PreAuthorize("hasAnyAuthority('PERMISSION_DELETE','ADMIN_ROOT')")
-    public void deletePermission(@PathVariable Long permissionId) {
+    public void deletePermission(@PathVariable UUID permissionId) {
         permissionService.deletePermission(permissionId);
     }
 }
