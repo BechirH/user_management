@@ -9,7 +9,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.hsurvey.userservice.exception.OrganizationAccessException;
-
+import com.hsurvey.userservice.annotation.RequireOrganizationAccess;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -99,7 +99,7 @@ public class PermissionServiceImpl implements PermissionService {
             throw new IllegalArgumentException("Cannot change organization ID of existing permission");
         }
 
-        // Check if new name conflicts with existing permissions in the same organization
+
         if (!existingPermission.getName().equals(permissionDTO.getName()) &&
                 permissionRepository.existsByNameAndOrganizationId(
                         permissionDTO.getName(), existingPermission.getOrganizationId())) {
@@ -209,68 +209,50 @@ public class PermissionServiceImpl implements PermissionService {
     }
     @Override
     @Transactional(readOnly = true)
+    @RequireOrganizationAccess(organizationIdParam = "organizationId")
     public PermissionDTO getPermissionByIdAndOrganization(UUID permissionId, UUID organizationId) {
         Permission permission = permissionRepository.findById(permissionId)
                 .orElseThrow(() -> new EntityNotFoundException("Permission not found with id: " + permissionId));
 
-        // Validate organization access
-        if (!permission.getOrganizationId().equals(organizationId)) {
-            throw new OrganizationAccessException("Access denied: Permission belongs to different organization");
-        }
+        // AOP handles organization validation automatically now!
+        // Remove this block:
+        // if (!permission.getOrganizationId().equals(organizationId)) {
+        //     throw new OrganizationAccessException("Access denied: Permission belongs to different organization");
+        // }
 
         return permissionMapper.toDto(permission);
     }
 
     @Override
     @Transactional
+    @RequireOrganizationAccess(organizationIdParam = "organizationId")
     public PermissionDTO updatePermissionInOrganization(UUID permissionId, PermissionDTO permissionDTO, UUID organizationId) {
         Permission existingPermission = permissionRepository.findById(permissionId)
                 .orElseThrow(() -> new EntityNotFoundException("Permission not found with id: " + permissionId));
 
-        // Validate organization access
-        if (!existingPermission.getOrganizationId().equals(organizationId)) {
-            throw new OrganizationAccessException("Access denied: Permission belongs to different organization");
-        }
-
-        // Validate organization ID consistency (prevent changing organization)
         if (permissionDTO.getOrganizationId() != null &&
                 !existingPermission.getOrganizationId().equals(permissionDTO.getOrganizationId())) {
             throw new IllegalArgumentException("Cannot change organization ID of existing permission");
         }
 
-        // Check if new name conflicts with existing permissions in the same organization
         if (!existingPermission.getName().equals(permissionDTO.getName()) &&
                 permissionRepository.existsByNameAndOrganizationId(
                         permissionDTO.getName(), existingPermission.getOrganizationId())) {
             throw new IllegalArgumentException("Permission with name '" + permissionDTO.getName() +
                     "' already exists in this organization");
         }
-
-        // Update permission properties
         existingPermission.setName(permissionDTO.getName());
         existingPermission.setDescription(permissionDTO.getDescription());
-
         Permission updatedPermission = permissionRepository.save(existingPermission);
         return permissionMapper.toDto(updatedPermission);
     }
 
     @Override
     @Transactional
+    @RequireOrganizationAccess(organizationIdParam = "organizationId")
     public void deletePermissionByIdAndOrganization(UUID permissionId, UUID organizationId) {
         Permission permission = permissionRepository.findById(permissionId)
                 .orElseThrow(() -> new EntityNotFoundException("Permission not found with id: " + permissionId));
-
-        // Validate organization access
-        if (!permission.getOrganizationId().equals(organizationId)) {
-            throw new OrganizationAccessException("Access denied: Permission belongs to different organization");
-        }
-
-        // Check if permission is being used by any roles (optional - implement based on your needs)
-        // long roleCount = rolePermissionRepository.countByPermissionId(permissionId);
-        // if (roleCount > 0) {
-        //     throw new IllegalStateException("Cannot delete permission that is assigned to roles");
-        // }
-
         permissionRepository.delete(permission);
     }
 }
