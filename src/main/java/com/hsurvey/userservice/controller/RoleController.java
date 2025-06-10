@@ -26,7 +26,7 @@ public class RoleController {
     @PreAuthorize("hasAnyAuthority('ROLE_CREATE','ADMIN_ROOT')")
     public ResponseEntity<RoleDTO> createRole(@RequestBody RoleDTO roleDTO) {
         UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
-        roleDTO.setOrganizationId(organizationId); // Force organization from token
+        roleDTO.setOrganizationId(organizationId);
         RoleDTO createdRole = roleService.createRole(roleDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdRole);
     }
@@ -37,10 +37,10 @@ public class RoleController {
         List<RoleDTO> roles;
 
         if (organizationContextUtil.isRootAdmin()) {
-            // Root admins can see all roles
+
             roles = roleService.getAllRoles();
         } else {
-            // Regular users only see roles from their organization
+
             UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
             roles = roleService.getAllRolesByOrganization(organizationId);
         }

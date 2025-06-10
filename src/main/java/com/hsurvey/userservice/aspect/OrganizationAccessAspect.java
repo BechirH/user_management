@@ -14,11 +14,6 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Parameter;
 import java.util.UUID;
 
-/**
- * AOP Aspect that handles organization-level access control.
- * Intercepts methods annotated with @RequireOrganizationAccess and validates
- * that the current user has access to the specified organization.
- */
 @Aspect
 @Component
 public class OrganizationAccessAspect {
@@ -29,22 +24,14 @@ public class OrganizationAccessAspect {
     public OrganizationAccessAspect(OrganizationContextUtil organizationContextUtil) {
         this.organizationContextUtil = organizationContextUtil;
     }
-
-    /**
-     * Validates organization access before method execution.
-     * This runs before any method annotated with @RequireOrganizationAccess.
-     */
     @Before("@annotation(requireOrganizationAccess)")
     public void validateOrganizationAccess(JoinPoint joinPoint, RequireOrganizationAccess requireOrganizationAccess) {
         logger.debug("Validating organization access for method: {}", joinPoint.getSignature().getName());
 
-        // Allow root admins to bypass if configured
         if (requireOrganizationAccess.allowRootAdmin() && organizationContextUtil.isRootAdmin()) {
             logger.debug("Root admin access - bypassing organization validation");
             return;
         }
-
-        // Extract organization ID from method parameters
         UUID targetOrganizationId = extractOrganizationId(joinPoint, requireOrganizationAccess.organizationIdParam());
 
         if (targetOrganizationId == null) {
@@ -52,8 +39,6 @@ public class OrganizationAccessAspect {
                     requireOrganizationAccess.organizationIdParam(), joinPoint.getSignature().getName());
             throw new IllegalArgumentException("Organization ID parameter not found or is null");
         }
-
-        // Get current user's organization
         UUID currentOrganizationId;
         try {
             currentOrganizationId = organizationContextUtil.getCurrentOrganizationId();
@@ -62,7 +47,6 @@ public class OrganizationAccessAspect {
             throw new OrganizationAccessException("No valid organization context found");
         }
 
-        // Validate access
         if (!currentOrganizationId.equals(targetOrganizationId)) {
             logger.warn("Organization access denied. Current: {}, Requested: {}",
                     currentOrganizationId, targetOrganizationId);
@@ -71,18 +55,10 @@ public class OrganizationAccessAspect {
 
         logger.debug("Organization access validated successfully for organization: {}", targetOrganizationId);
     }
-
-    /**
-     * Extracts the organization ID from method parameters.
-     * First tries to find a parameter with the specified name,
-     * then falls back to finding any UUID parameter.
-     */
     private UUID extractOrganizationId(JoinPoint joinPoint, String parameterName) {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Parameter[] parameters = signature.getMethod().getParameters();
         Object[] args = joinPoint.getArgs();
-
-        // First, try to find parameter by name
         for (int i = 0; i < parameters.length; i++) {
             if (parameters[i].getName().equals(parameterName)) {
                 Object arg = args[i];
@@ -92,8 +68,6 @@ public class OrganizationAccessAspect {
                 logger.warn("Parameter '{}' found but not of type UUID", parameterName);
             }
         }
-
-        // Fallback: find any UUID parameter (useful when parameter names aren't preserved)
         for (int i = 0; i < parameters.length; i++) {
             if (parameters[i].getType().equals(UUID.class)) {
                 Object arg = args[i];

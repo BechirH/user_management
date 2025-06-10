@@ -39,7 +39,6 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        // Validate invite code (organization UUID)
         UUID orgId;
         try {
             orgId = UUID.fromString(request.getInviteCode());
@@ -47,7 +46,6 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Invalid invite code format");
         }
 
-        // Verify organization exists
         try {
             ResponseEntity<Boolean> response = organizationClient.organizationExists(orgId);
             if (response == null || !response.getStatusCode().is2xxSuccessful() ||
@@ -58,12 +56,10 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Failed to verify organization", e);
         }
 
-        // Check for existing email
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email already exists");
         }
 
-        // Check for existing username
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("Username already exists");
         }

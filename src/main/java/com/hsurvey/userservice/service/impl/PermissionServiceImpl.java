@@ -8,7 +8,6 @@ import com.hsurvey.userservice.service.PermissionService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.hsurvey.userservice.exception.OrganizationAccessException;
 import com.hsurvey.userservice.annotation.RequireOrganizationAccess;
 import java.util.List;
 import java.util.Optional;
@@ -93,12 +92,10 @@ public class PermissionServiceImpl implements PermissionService {
         Permission existingPermission = permissionRepository.findById(permissionId)
                 .orElseThrow(() -> new EntityNotFoundException("Permission not found with id: " + permissionId));
 
-        // Validate organization ID consistency
         if (permissionDTO.getOrganizationId() != null &&
                 !existingPermission.getOrganizationId().equals(permissionDTO.getOrganizationId())) {
             throw new IllegalArgumentException("Cannot change organization ID of existing permission");
         }
-
 
         if (!existingPermission.getName().equals(permissionDTO.getName()) &&
                 permissionRepository.existsByNameAndOrganizationId(
@@ -107,7 +104,7 @@ public class PermissionServiceImpl implements PermissionService {
                     "' already exists in this organization");
         }
 
-        // Update permission properties
+
         existingPermission.setName(permissionDTO.getName());
         existingPermission.setDescription(permissionDTO.getDescription());
 
@@ -120,10 +117,6 @@ public class PermissionServiceImpl implements PermissionService {
     public void deletePermission(UUID permissionId) {
         Permission permission = permissionRepository.findById(permissionId)
                 .orElseThrow(() -> new EntityNotFoundException("Permission not found with id: " + permissionId));
-
-        // Check if permission is being used by any roles
-        // You might want to add a check here to prevent deletion of permissions in use
-
         permissionRepository.delete(permission);
     }
 
@@ -156,19 +149,16 @@ public class PermissionServiceImpl implements PermissionService {
 
         return permissionNames.stream()
                 .map(name -> {
-                    // Check if permission already exists
                     Optional<Permission> existing = permissionRepository.findByNameAndOrganizationId(name, organizationId);
                     if (existing.isPresent()) {
                         return permissionMapper.toDto(existing.get());
                     }
 
-                    // Create new permission
                     Permission permission = Permission.builder()
                             .name(name)
                             .organizationId(organizationId)
                             .description("Default " + name.toLowerCase().replace("_", " ") + " permission")
                             .build();
-
                     Permission savedPermission = permissionRepository.save(permission);
                     return permissionMapper.toDto(savedPermission);
                 })
@@ -203,7 +193,6 @@ public class PermissionServiceImpl implements PermissionService {
         if (organizationId == null) {
             throw new IllegalArgumentException("Organization ID cannot be null");
         }
-
         List<Permission> permissions = permissionRepository.findByOrganizationId(organizationId);
         permissionRepository.deleteAll(permissions);
     }
