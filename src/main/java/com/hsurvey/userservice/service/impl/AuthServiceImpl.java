@@ -5,12 +5,15 @@ import com.hsurvey.userservice.dto.AuthResponse;
 import com.hsurvey.userservice.dto.RegisterRequest;
 import com.hsurvey.userservice.entities.Role;
 import com.hsurvey.userservice.entities.User;
-import com.hsurvey.userservice.repositories.RoleRepository;
 import com.hsurvey.userservice.repositories.UserRepository;
 import com.hsurvey.userservice.service.AuthService;
 import com.hsurvey.userservice.service.CustomUserDetailsService;
+import com.hsurvey.userservice.service.OrganizationRoleService;
+import com.hsurvey.userservice.service.clients.OrganizationClient;
 import com.hsurvey.userservice.utils.JwtUtil;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
@@ -18,44 +21,67 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Set;
+import java.util.UUID;
 
-import java.util.Collections;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final CustomUserDetailsService userDetailsService;
+    private final OrganizationClient organizationClient;
+    private final OrganizationRoleService organizationRoleService;
 
     @Override
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
+        // Validate invite code (organization UUID)
+        UUID orgId;
+        try {
+            orgId = UUID.fromString(request.getInviteCode());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid invite code format");
+        }
+
+        // Verify organization exists
+        try {
+            ResponseEntity<Boolean> response = organizationClient.organizationExists(orgId);
+            if (response == null || !response.getStatusCode().is2xxSuccessful() ||
+                    !Boolean.TRUE.equals(response.getBody())) {
+                throw new IllegalArgumentException("Organization not found");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to verify organization", e);
+        }
+
+        // Check for existing email
         if (userRepository.existsByEmail(request.getEmail())) {
-            return AuthResponse.builder()
-                    .success(false)
-                    .message("Email already exists")
-                    .build();
+            throw new IllegalArgumentException("Email already exists");
         }
 
+        // Check for existing username
         if (userRepository.existsByUsername(request.getUsername())) {
-            return AuthResponse.builder()
-                    .success(false)
-                    .message("Username already exists")
-                    .build();
+            throw new IllegalArgumentException("Username already exists");
         }
 
+        // Create default roles and permissions for organization if they don't exist
+        organizationRoleService.createDefaultRolesForOrganization(orgId);
+
+        // Get default user role for the organization
+        Role defaultUserRole = organizationRoleService.getDefaultUserRole(orgId);
+
+        // Create new user with default role
         User user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
+                .organizationId(orgId)
+                .roles(Set.of(defaultUserRole))
                 .build();
-
-        Role userRole = roleRepository.findByName("ROLE_USER")
-                .orElseThrow(() -> new RuntimeException("Default role not found"));
-        user.setRoles(Collections.singleton(userRole));
 
         User savedUser = userRepository.save(user);
 
@@ -66,6 +92,7 @@ public class AuthServiceImpl implements AuthService {
                 .success(true)
                 .token(jwtToken)
                 .username(savedUser.getUsername())
+                .organizationId(orgId)
                 .message("User registered successfully")
                 .build();
     }
@@ -90,10 +117,7 @@ public class AuthServiceImpl implements AuthService {
                     .message("Login successful")
                     .build();
         } catch (AuthenticationException e) {
-            return AuthResponse.builder()
-                    .success(false)
-                    .message("Authentication failed: Invalid email or password")
-                    .build();
+            throw new IllegalArgumentException("Authentication failed: Invalid email or password");
         }
     }
 }

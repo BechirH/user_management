@@ -13,4 +13,5 @@ public class UserDTO {
     @JsonIgnore
     private String password;
     private Set<String> roles;
+    private UUID organizationId;
 }

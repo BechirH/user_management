@@ -10,9 +10,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import java.security.Key;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -29,12 +27,24 @@ public class JwtUtil {
         this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
     }
 
-    public String generateToken(UserDetails userDetails) {
+    // UPDATED: Add organizationId parameter
+    public String generateToken(UserDetails userDetails, UUID organizationId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("authorities", userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList()));
+
+        // ADD: Organization ID to token claims
+        if (organizationId != null) {
+            claims.put("organizationId", organizationId.toString());
+        }
+
         return createToken(claims, userDetails.getUsername());
+    }
+
+    // KEEP: Original method for backward compatibility
+    public String generateToken(UserDetails userDetails) {
+        return generateToken(userDetails, null);
     }
 
     private String createToken(Map<String, Object> claims, String subject) {
@@ -51,6 +61,20 @@ public class JwtUtil {
         return extractClaim(token, Claims::getSubject);
     }
 
+    // NEW: Extract organization ID from token
+    public UUID extractOrganizationId(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        String orgId = (String) claims.get("organizationId");
+        return orgId != null ? UUID.fromString(orgId) : null;
+    }
+
+    // NEW: Extract authorities from token
+    @SuppressWarnings("unchecked")
+    public List<String> extractAuthorities(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        return (List<String>) claims.get("authorities");
+    }
+
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
@@ -60,7 +84,6 @@ public class JwtUtil {
         return claimsResolver.apply(claims);
     }
 
-    // Changed from private to public
     public Claims getAllClaimsFromToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(signingKey)
