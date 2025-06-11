@@ -6,6 +6,7 @@ import com.hsurvey.userservice.dto.RegisterRequest;
 import com.hsurvey.userservice.dto.AdminRegisterRequest;
 import com.hsurvey.userservice.entities.Role;
 import com.hsurvey.userservice.entities.User;
+import com.hsurvey.userservice.exception.AdminAlreadyExistsException;
 import com.hsurvey.userservice.repositories.UserRepository;
 import com.hsurvey.userservice.service.AuthService;
 import com.hsurvey.userservice.service.CustomUserDetailsService;
@@ -109,6 +110,11 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Failed to verify organization", e);
         }
 
+        // Check if admin already exists for this organization
+        if (adminAlreadyExistsForOrganization(organizationId)) {
+            throw new AdminAlreadyExistsException("Admin user already exists for this organization");
+        }
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email already exists");
         }
@@ -117,9 +123,7 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Username already exists");
         }
 
-
         organizationRoleService.createDefaultRolesForOrganization(organizationId);
-
 
         Role adminRole = organizationRoleService.getDefaultAdminRole(organizationId);
 
@@ -144,6 +148,19 @@ public class AuthServiceImpl implements AuthService {
                 .organizationId(organizationId)
                 .message("Admin registered successfully")
                 .build();
+    }
+
+    // Helper method to check if admin exists
+    private boolean adminAlreadyExistsForOrganization(UUID organizationId) {
+        Role adminRole;
+        try {
+            adminRole = organizationRoleService.getDefaultAdminRole(organizationId);
+        } catch (RuntimeException e) {
+            // If admin role doesn't exist yet, no admin can exist
+            return false;
+        }
+
+        return userRepository.existsByOrganizationIdAndRolesContaining(organizationId, adminRole);
     }
 
     @Override

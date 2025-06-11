@@ -1,5 +1,6 @@
 package com.hsurvey.userservice.repositories;
 
+import com.hsurvey.userservice.entities.Role;
 import com.hsurvey.userservice.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
@@ -15,4 +16,5 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByEmailAndOrganizationId(String email, UUID organizationId);
     List<User> findByOrganizationId(UUID organizationId);
     Optional<User> findByIdAndOrganizationId(UUID id, UUID organizationId);
+    boolean existsByOrganizationIdAndRolesContaining(UUID organizationId, Role role);
 }
