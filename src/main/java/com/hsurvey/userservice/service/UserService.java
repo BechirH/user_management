@@ -6,11 +6,27 @@ import java.util.List;
 import java.util.UUID;
 
 public interface UserService {
+    // Create methods
     UserDTO createUser(CreateUserDTO createUserDTO);
+    UserDTO createUserForOrganization(CreateUserDTO createUserDTO, UUID targetOrganizationId);
+
+    // Read methods
     List<UserDTO> getAllUsers();
-    UserDTO getUserById(UUID id);
+    List<UserDTO> getAllUsersByOrganization(UUID organizationId);
+    UserDTO getUserById(UUID userId);
+    UserDTO getUserByIdAndOrganization(UUID userId, UUID organizationId);
+
+    // Update methods
     UserDTO updateUser(UUID id, UserDTO userDTO);
-    void deleteUser(UUID id);
+    UserDTO updateUserInOrganization(UUID id, UserDTO userDTO, UUID organizationId);
+
+    // Delete methods
+    void deleteUserById(UUID userId);
+    void deleteUserByIdAndOrganization(UUID userId, UUID organizationId);
+
+    // Role management methods
     UserDTO addRoleToUser(UUID userId, UUID roleId);
+    UserDTO addRoleToUserInOrganization(UUID userId, UUID roleId, UUID organizationId);
     UserDTO removeRoleFromUser(UUID userId, UUID roleId);
+    UserDTO removeRoleFromUserInOrganization(UUID userId, UUID roleId, UUID organizationId);
 }

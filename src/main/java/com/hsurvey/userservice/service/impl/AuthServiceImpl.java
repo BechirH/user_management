@@ -3,6 +3,7 @@ package com.hsurvey.userservice.service.impl;
 import com.hsurvey.userservice.dto.AuthRequest;
 import com.hsurvey.userservice.dto.AuthResponse;
 import com.hsurvey.userservice.dto.RegisterRequest;
+import com.hsurvey.userservice.dto.AdminRegisterRequest;
 import com.hsurvey.userservice.entities.Role;
 import com.hsurvey.userservice.entities.User;
 import com.hsurvey.userservice.repositories.UserRepository;
@@ -11,6 +12,7 @@ import com.hsurvey.userservice.service.CustomUserDetailsService;
 import com.hsurvey.userservice.service.OrganizationRoleService;
 import com.hsurvey.userservice.service.clients.OrganizationClient;
 import com.hsurvey.userservice.utils.JwtUtil;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -49,8 +51,10 @@ public class AuthServiceImpl implements AuthService {
             ResponseEntity<Boolean> response = organizationClient.organizationExists(orgId);
             if (response == null || !response.getStatusCode().is2xxSuccessful() ||
                     !Boolean.TRUE.equals(response.getBody())) {
-                throw new IllegalArgumentException("Organization not found");
+                throw new EntityNotFoundException("Organization not found");
             }
+        } catch (EntityNotFoundException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("Failed to verify organization", e);
         }
@@ -63,13 +67,9 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Username already exists");
         }
 
-        // Create default roles and permissions for organization if they don't exist
-        organizationRoleService.createDefaultRolesForOrganization(orgId);
 
-        // Get default user role for the organization
         Role defaultUserRole = organizationRoleService.getDefaultUserRole(orgId);
 
-        // Create new user with default role
         User user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
@@ -82,7 +82,6 @@ public class AuthServiceImpl implements AuthService {
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
 
-        // FIXED: Now passing organizationId to generateToken
         String jwtToken = jwtUtil.generateToken(userDetails, orgId);
 
         return AuthResponse.builder()
@@ -91,6 +90,59 @@ public class AuthServiceImpl implements AuthService {
                 .username(savedUser.getUsername())
                 .organizationId(orgId)
                 .message("User registered successfully")
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse registerAdmin(AdminRegisterRequest request, UUID organizationId) {
+
+        try {
+            ResponseEntity<Boolean> response = organizationClient.organizationExists(organizationId);
+            if (response == null || !response.getStatusCode().is2xxSuccessful() ||
+                    !Boolean.TRUE.equals(response.getBody())) {
+                throw new EntityNotFoundException("Organization not found");
+            }
+        } catch (EntityNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to verify organization", e);
+        }
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new IllegalArgumentException("Username already exists");
+        }
+
+
+        organizationRoleService.createDefaultRolesForOrganization(organizationId);
+
+
+        Role adminRole = organizationRoleService.getDefaultAdminRole(organizationId);
+
+        User adminUser = User.builder()
+                .username(request.getUsername())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .organizationId(organizationId)
+                .roles(Set.of(adminRole))
+                .build();
+
+        User savedUser = userRepository.save(adminUser);
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
+
+        String jwtToken = jwtUtil.generateToken(userDetails, organizationId);
+
+        return AuthResponse.builder()
+                .success(true)
+                .token(jwtToken)
+                .username(savedUser.getUsername())
+                .organizationId(organizationId)
+                .message("Admin registered successfully")
                 .build();
     }
 
@@ -106,20 +158,18 @@ public class AuthServiceImpl implements AuthService {
 
             UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
 
-            // FIXED: Get the user's organization ID for token generation
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
             UUID organizationId = user.getOrganizationId();
 
-            // FIXED: Now passing organizationId to generateToken
             String jwtToken = jwtUtil.generateToken(userDetails, organizationId);
 
             return AuthResponse.builder()
                     .success(true)
                     .token(jwtToken)
                     .username(userDetails.getUsername())
-                    .organizationId(organizationId) // ADDED: Include organization ID in response
+                    .organizationId(organizationId)
                     .message("Login successful")
                     .build();
         } catch (AuthenticationException e) {

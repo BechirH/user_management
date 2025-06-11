@@ -25,9 +25,21 @@ public class PermissionController {
     @PostMapping
     @PreAuthorize("hasAnyAuthority('PERMISSION_CREATE','SYS_ADMIN_ROOT')")
     public ResponseEntity<PermissionDTO> createPermission(@RequestBody PermissionDTO permissionDTO) {
-        UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
-        permissionDTO.setOrganizationId(organizationId); // Force organization from token
-        PermissionDTO createdPermission = permissionService.createPermission(permissionDTO);
+        PermissionDTO createdPermission;
+
+        if (organizationContextUtil.isRootAdmin()) {
+
+            if (permissionDTO.getOrganizationId() == null) {
+                throw new IllegalArgumentException("Organization ID is required for sys admin permission creation");
+            }
+            createdPermission = permissionService.createPermissionForOrganization(permissionDTO, permissionDTO.getOrganizationId());
+        } else {
+
+            UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
+            permissionDTO.setOrganizationId(organizationId);
+            createdPermission = permissionService.createPermission(permissionDTO);
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED).body(createdPermission);
     }
 
@@ -37,10 +49,8 @@ public class PermissionController {
         List<PermissionDTO> permissions;
 
         if (organizationContextUtil.isRootAdmin()) {
-            // Root admins can see all permissions
             permissions = permissionService.getAllPermissions();
         } else {
-            // Regular users only see permissions from their organization
             UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
             permissions = permissionService.getAllPermissionsByOrganization(organizationId);
         }
@@ -51,8 +61,15 @@ public class PermissionController {
     @GetMapping("/{permissionId}")
     @PreAuthorize("hasAnyAuthority('PERMISSION_READ','SYS_ADMIN_ROOT')")
     public ResponseEntity<PermissionDTO> getPermissionById(@PathVariable UUID permissionId) {
-        UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
-        PermissionDTO permission = permissionService.getPermissionByIdAndOrganization(permissionId, organizationId);
+        PermissionDTO permission;
+
+        if (organizationContextUtil.isRootAdmin()) {
+            permission = permissionService.getPermissionById(permissionId);
+        } else {
+            UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
+            permission = permissionService.getPermissionByIdAndOrganization(permissionId, organizationId);
+        }
+
         return ResponseEntity.ok(permission);
     }
 
@@ -61,16 +78,28 @@ public class PermissionController {
     public ResponseEntity<PermissionDTO> updatePermission(
             @PathVariable UUID permissionId,
             @RequestBody PermissionDTO permissionDTO) {
-        UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
-        PermissionDTO updatedPermission = permissionService.updatePermissionInOrganization(permissionId, permissionDTO, organizationId);
+        PermissionDTO updatedPermission;
+
+        if (organizationContextUtil.isRootAdmin()) {
+            updatedPermission = permissionService.updatePermission(permissionId, permissionDTO);
+        } else {
+            UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
+            updatedPermission = permissionService.updatePermissionInOrganization(permissionId, permissionDTO, organizationId);
+        }
+
         return ResponseEntity.ok(updatedPermission);
     }
 
     @DeleteMapping("/{permissionId}")
     @PreAuthorize("hasAnyAuthority('PERMISSION_DELETE','SYS_ADMIN_ROOT')")
     public ResponseEntity<Void> deletePermission(@PathVariable UUID permissionId) {
-        UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
-        permissionService.deletePermissionByIdAndOrganization(permissionId, organizationId);
+        if (organizationContextUtil.isRootAdmin()) {
+            permissionService.deletePermissionById(permissionId);
+        } else {
+            UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
+            permissionService.deletePermissionByIdAndOrganization(permissionId, organizationId);
+        }
+
         return ResponseEntity.noContent().build();
     }
 }

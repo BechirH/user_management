@@ -19,36 +19,20 @@ public class OrganizationRoleService {
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
     }
-    @Transactional
-    public Role createDefaultUserRole(UUID organizationId) {
-        Optional<Role> existingRole = roleRepository.findByNameAndOrganizationId("USER", organizationId);
-        if (existingRole.isPresent()) {
-            return existingRole.get();
-        }
-        Set<Permission> defaultPermissions = createDefaultPermissions(organizationId);
 
-        Role userRole = Role.builder()
-                .name("USER")
-                .organizationId(organizationId)
-                .description("Default user role")
-                .permissions(defaultPermissions)
-                .build();
-
-        return roleRepository.save(userRole);
-    }
     @Transactional
     public void createDefaultRolesForOrganization(UUID organizationId) {
 
         Set<Permission> allPermissions = createDefaultPermissions(organizationId);
-        Set<Permission> userPermissions = allPermissions.stream()
-                .filter(p -> p.getName().equals("SYS_ADMIN_ROOT") || p.getName().equals("UPDATE_PROFILE"))
-                .collect(HashSet::new, Set::add, Set::addAll);
+
+
         Role userRole = Role.builder()
                 .name("USER")
                 .organizationId(organizationId)
-                .description("Default user role")
-                .permissions(userPermissions)
+                .description("Default user role with no permissions")
+                .permissions(new HashSet<>()) // Empty set - no permissions
                 .build();
+
 
         Role adminRole = Role.builder()
                 .name("ADMIN")
@@ -56,6 +40,7 @@ public class OrganizationRoleService {
                 .description("Organization administrator role")
                 .permissions(new HashSet<>(allPermissions))
                 .build();
+
         if (!roleRepository.existsByNameAndOrganizationId("USER", organizationId)) {
             roleRepository.save(userRole);
         }
@@ -63,17 +48,22 @@ public class OrganizationRoleService {
             roleRepository.save(adminRole);
         }
     }
+
     private Set<Permission> createDefaultPermissions(UUID organizationId) {
         List<String> defaultPermissionNames = Arrays.asList(
-                "SYS_ADMIN_ROOT",   // REMOVE LATER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                "READ_PROFILE",
-                "UPDATE_PROFILE",
-                "CREATE_SURVEY",
-                "READ_SURVEY",
-                "UPDATE_SURVEY",
-                "DELETE_SURVEY",
-                "MANAGE_USERS",
-                "VIEW_ANALYTICS"
+                "PERMISSION_CREATE",
+                "PERMISSION_READ",
+                "PERMISSION_UPDATE",
+                "PERMISSION_DELETE",
+                "ROLE_CREATE",
+                "ROLE_READ",
+                "ROLE_UPDATE",
+                "ROLE_DELETE",
+                "USER_CREATE",
+                "USER_READ",
+                "USER_UPDATE",
+                "USER_DELETE"
+
         );
 
         Set<Permission> permissions = new HashSet<>();
@@ -97,17 +87,16 @@ public class OrganizationRoleService {
 
         return permissions;
     }
+
     public Role getDefaultUserRole(UUID organizationId) {
         return roleRepository.findByNameAndOrganizationId("USER", organizationId)
-                .orElseGet(() -> createDefaultUserRole(organizationId));
+                .orElseThrow(() -> new RuntimeException("Default USER role not found for organization. Please contact administrator."));
     }
-    public Optional<Role> findRoleByNameAndOrganization(String roleName, UUID organizationId) {
-        return roleRepository.findByNameAndOrganizationId(roleName, organizationId);
+
+    public Role getDefaultAdminRole(UUID organizationId) {
+        return roleRepository.findByNameAndOrganizationId("ADMIN", organizationId)
+                .orElseThrow(() -> new RuntimeException("Default ADMIN role not found for organization."));
     }
-    public List<Role> getRolesByOrganization(UUID organizationId) {
-        return roleRepository.findByOrganizationId(organizationId);
-    }
-    public List<Permission> getPermissionsByOrganization(UUID organizationId) {
-        return permissionRepository.findByOrganizationId(organizationId);
-    }
+
+
 }

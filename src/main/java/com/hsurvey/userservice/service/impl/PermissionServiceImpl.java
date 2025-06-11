@@ -24,33 +24,48 @@ public class PermissionServiceImpl implements PermissionService {
     public PermissionServiceImpl(PermissionRepository permissionRepository,
                                  PermissionMapper permissionMapper,
                                  RoleRepository roleRepository) {
-
         this.permissionRepository = permissionRepository;
         this.permissionMapper = permissionMapper;
         this.roleRepository = roleRepository;
     }
 
+    // CREATE METHODS
     @Override
     @Transactional
     public PermissionDTO createPermission(PermissionDTO permissionDTO) {
-        // Validate that organizationId is provided
-        if (permissionDTO.getOrganizationId() == null) {
+        return createPermissionInternal(permissionDTO, permissionDTO.getOrganizationId());
+    }
+
+    @Override
+    @Transactional
+    public PermissionDTO createPermissionForOrganization(PermissionDTO permissionDTO, UUID targetOrganizationId) {
+        return createPermissionInternal(permissionDTO, targetOrganizationId);
+    }
+
+    private PermissionDTO createPermissionInternal(PermissionDTO permissionDTO, UUID organizationId) {
+        if (organizationId == null) {
             throw new IllegalArgumentException("Organization ID is required");
         }
+
         if (permissionDTO.getName().startsWith("SYS_")) {
             throw new SecurityException("Cannot create permissions with SYS_ prefix - reserved for system authorities");
         }
+
         if (permissionRepository.existsByNameAndOrganizationId(
-                permissionDTO.getName(), permissionDTO.getOrganizationId())) {
+                permissionDTO.getName(), organizationId)) {
             throw new IllegalArgumentException("Permission with name '" + permissionDTO.getName() +
                     "' already exists in this organization");
         }
+
+        // Set the organization ID to ensure consistency
+        permissionDTO.setOrganizationId(organizationId);
 
         Permission permission = permissionMapper.toEntity(permissionDTO);
         Permission savedPermission = permissionRepository.save(permission);
         return permissionMapper.toDto(savedPermission);
     }
 
+    // READ METHODS
     @Override
     @Transactional(readOnly = true)
     public List<PermissionDTO> getAllPermissions() {
@@ -58,7 +73,6 @@ public class PermissionServiceImpl implements PermissionService {
                 .map(permissionMapper::toDto)
                 .collect(Collectors.toList());
     }
-
 
     @Override
     @Transactional(readOnly = true)
@@ -72,6 +86,18 @@ public class PermissionServiceImpl implements PermissionService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PermissionDTO getPermissionById(UUID permissionId) {
+        if (permissionId == null) {
+            throw new IllegalArgumentException("Permission ID cannot be null");
+        }
+
+        Permission permission = permissionRepository.findById(permissionId)
+                .orElseThrow(() -> new EntityNotFoundException("Permission not found with id: " + permissionId));
+
+        return permissionMapper.toDto(permission);
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -95,6 +121,42 @@ public class PermissionServiceImpl implements PermissionService {
         return permissionMapper.toDto(permission);
     }
 
+    // UPDATE METHODS
+    @Override
+    @Transactional
+    public PermissionDTO updatePermission(UUID permissionId, PermissionDTO permissionDTO) {
+        if (permissionId == null) {
+            throw new IllegalArgumentException("Permission ID cannot be null");
+        }
+        if (permissionDTO == null) {
+            throw new IllegalArgumentException("Permission data cannot be null");
+        }
+
+        Permission existingPermission = permissionRepository.findById(permissionId)
+                .orElseThrow(() -> new EntityNotFoundException("Permission not found with id: " + permissionId));
+
+
+        if (permissionDTO.getOrganizationId() != null &&
+                !existingPermission.getOrganizationId().equals(permissionDTO.getOrganizationId())) {
+            throw new IllegalArgumentException("Cannot change organization ID of existing permission");
+        }
+
+
+        if (!existingPermission.getName().equals(permissionDTO.getName()) &&
+                permissionRepository.existsByNameAndOrganizationId(
+                        permissionDTO.getName(), existingPermission.getOrganizationId())) {
+            throw new IllegalArgumentException("Permission with name '" + permissionDTO.getName() +
+                    "' already exists in this organization");
+        }
+
+
+        existingPermission.setName(permissionDTO.getName());
+        existingPermission.setDescription(permissionDTO.getDescription());
+
+        Permission updatedPermission = permissionRepository.save(existingPermission);
+        return permissionMapper.toDto(updatedPermission);
+    }
+
     @Override
     @Transactional
     @RequireOrganizationAccess(organizationIdParam = "organizationId")
@@ -112,18 +174,18 @@ public class PermissionServiceImpl implements PermissionService {
         Permission existingPermission = permissionRepository.findById(permissionId)
                 .orElseThrow(() -> new EntityNotFoundException("Permission not found with id: " + permissionId));
 
-        // Verify the permission belongs to the specified organization
+
         if (!existingPermission.getOrganizationId().equals(organizationId)) {
             throw new EntityNotFoundException("Permission not found in the specified organization");
         }
 
-        // Prevent changing organization ID
+
         if (permissionDTO.getOrganizationId() != null &&
                 !existingPermission.getOrganizationId().equals(permissionDTO.getOrganizationId())) {
             throw new IllegalArgumentException("Cannot change organization ID of existing permission");
         }
 
-        // Check for name conflicts within the organization
+
         if (!existingPermission.getName().equals(permissionDTO.getName()) &&
                 permissionRepository.existsByNameAndOrganizationId(
                         permissionDTO.getName(), existingPermission.getOrganizationId())) {
@@ -131,7 +193,7 @@ public class PermissionServiceImpl implements PermissionService {
                     "' already exists in this organization");
         }
 
-        // Update fields
+
         existingPermission.setName(permissionDTO.getName());
         existingPermission.setDescription(permissionDTO.getDescription());
 
@@ -139,7 +201,27 @@ public class PermissionServiceImpl implements PermissionService {
         return permissionMapper.toDto(updatedPermission);
     }
 
+    // DELETE METHODS
+    @Override
+    @Transactional
+    public void deletePermissionById(UUID permissionId) {
+        if (permissionId == null) {
+            throw new IllegalArgumentException("Permission ID cannot be null");
+        }
 
+        Permission permission = permissionRepository.findById(permissionId)
+                .orElseThrow(() -> new EntityNotFoundException("Permission not found with id: " + permissionId));
+
+
+        List<Role> rolesWithPermission = roleRepository.findByPermissionsContaining(permission);
+        for (Role role : rolesWithPermission) {
+            role.getPermissions().remove(permission);
+            roleRepository.save(role);
+        }
+
+
+        permissionRepository.delete(permission);
+    }
 
     @Override
     @Transactional
@@ -155,18 +237,17 @@ public class PermissionServiceImpl implements PermissionService {
         Permission permission = permissionRepository.findById(permissionId)
                 .orElseThrow(() -> new EntityNotFoundException("Permission not found with id: " + permissionId));
 
+
         if (!permission.getOrganizationId().equals(organizationId)) {
             throw new EntityNotFoundException("Permission not found in the specified organization");
         }
 
-        // Remove this permission from all roles that have it
         List<Role> rolesWithPermission = roleRepository.findByPermissionsContaining(permission);
         for (Role role : rolesWithPermission) {
             role.getPermissions().remove(permission);
             roleRepository.save(role);
         }
 
-        // Now safe to delete the permission
         permissionRepository.delete(permission);
     }
 }

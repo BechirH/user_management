@@ -41,7 +41,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         return user.getRoles().stream()
                 .flatMap(role -> {
-                    // Handle null permissions
+
                     if (role.getPermissions() == null || role.getPermissions().isEmpty()) {
                         return List.of(new SimpleGrantedAuthority("ROLE_" + role.getName())).stream();
                     }
