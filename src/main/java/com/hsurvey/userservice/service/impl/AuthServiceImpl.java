@@ -24,7 +24,6 @@ import org.springframework.stereotype.Service;
 import java.util.Set;
 import java.util.UUID;
 
-
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -82,7 +81,9 @@ public class AuthServiceImpl implements AuthService {
         User savedUser = userRepository.save(user);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
-        String jwtToken = jwtUtil.generateToken(userDetails);
+
+        // FIXED: Now passing organizationId to generateToken
+        String jwtToken = jwtUtil.generateToken(userDetails, orgId);
 
         return AuthResponse.builder()
                 .success(true)
@@ -104,12 +105,21 @@ public class AuthServiceImpl implements AuthService {
             );
 
             UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
-            String jwtToken = jwtUtil.generateToken(userDetails);
+
+            // FIXED: Get the user's organization ID for token generation
+            User user = userRepository.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+            UUID organizationId = user.getOrganizationId();
+
+            // FIXED: Now passing organizationId to generateToken
+            String jwtToken = jwtUtil.generateToken(userDetails, organizationId);
 
             return AuthResponse.builder()
                     .success(true)
                     .token(jwtToken)
                     .username(userDetails.getUsername())
+                    .organizationId(organizationId) // ADDED: Include organization ID in response
                     .message("Login successful")
                     .build();
         } catch (AuthenticationException e) {

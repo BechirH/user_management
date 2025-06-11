@@ -23,7 +23,7 @@ public class RoleController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_CREATE','ADMIN_ROOT')")
+    @PreAuthorize("hasAnyAuthority('ROLE_CREATE','SYS_ADMIN_ROOT')")
     public ResponseEntity<RoleDTO> createRole(@RequestBody RoleDTO roleDTO) {
         UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
         roleDTO.setOrganizationId(organizationId);
@@ -32,7 +32,7 @@ public class RoleController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_READ','ADMIN_ROOT')")
+    @PreAuthorize("hasAnyAuthority('ROLE_READ','SYS_ADMIN_ROOT')")
     public ResponseEntity<List<RoleDTO>> getAllRoles() {
         List<RoleDTO> roles;
 
@@ -49,7 +49,7 @@ public class RoleController {
     }
 
     @GetMapping("/{roleId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_READ','ADMIN_ROOT')")
+    @PreAuthorize("hasAnyAuthority('ROLE_READ','SYS_ADMIN_ROOT')")
     public ResponseEntity<RoleDTO> getRoleById(@PathVariable UUID roleId) {
         UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
         RoleDTO role = roleService.getRoleByIdAndOrganization(roleId, organizationId);
@@ -57,7 +57,7 @@ public class RoleController {
     }
 
     @DeleteMapping("/{roleId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_DELETE','ADMIN_ROOT')")
+    @PreAuthorize("hasAnyAuthority('ROLE_DELETE','SYS_ADMIN_ROOT')")
     public ResponseEntity<Void> deleteRole(@PathVariable UUID roleId) {
         UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
         roleService.deleteRoleByIdAndOrganization(roleId, organizationId);
@@ -65,7 +65,7 @@ public class RoleController {
     }
 
     @PostMapping("/{roleId}/permissions/{permissionId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_UPDATE','ADMIN_ROOT')")
+    @PreAuthorize("hasAnyAuthority('ROLE_UPDATE','SYS_ADMIN_ROOT')")
     public ResponseEntity<Void> addPermissionToRole(@PathVariable UUID roleId, @PathVariable UUID permissionId) {
         UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
         roleService.addPermissionToRoleInOrganization(roleId, permissionId, organizationId);
@@ -73,7 +73,7 @@ public class RoleController {
     }
 
     @DeleteMapping("/{roleId}/permissions/{permissionId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_UPDATE','ADMIN_ROOT')")
+    @PreAuthorize("hasAnyAuthority('ROLE_UPDATE','SYS_ADMIN_ROOT')")
     public ResponseEntity<Void> removePermissionFromRole(@PathVariable UUID roleId, @PathVariable UUID permissionId) {
         UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
         roleService.removePermissionFromRoleInOrganization(roleId, permissionId, organizationId);

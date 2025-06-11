@@ -27,14 +27,17 @@ public class JwtUtil {
         this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
     }
 
-    // UPDATED: Add organizationId parameter
+
     public String generateToken(UserDetails userDetails, UUID organizationId) {
         Map<String, Object> claims = new HashMap<>();
+
+
         claims.put("authorities", userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList()));
 
-        // ADD: Organization ID to token claims
+
+
         if (organizationId != null) {
             claims.put("organizationId", organizationId.toString());
         }
@@ -42,9 +45,14 @@ public class JwtUtil {
         return createToken(claims, userDetails.getUsername());
     }
 
-    // KEEP: Original method for backward compatibility
-    public String generateToken(UserDetails userDetails) {
-        return generateToken(userDetails, null);
+
+
+
+    public String generateTokenWithOrganization(UserDetails userDetails, UUID organizationId) {
+        if (organizationId == null) {
+            throw new IllegalArgumentException("Organization ID is required");
+        }
+        return generateToken(userDetails, organizationId);
     }
 
     private String createToken(Map<String, Object> claims, String subject) {
@@ -61,18 +69,29 @@ public class JwtUtil {
         return extractClaim(token, Claims::getSubject);
     }
 
-    // NEW: Extract organization ID from token
+
     public UUID extractOrganizationId(String token) {
-        Claims claims = getAllClaimsFromToken(token);
-        String orgId = (String) claims.get("organizationId");
-        return orgId != null ? UUID.fromString(orgId) : null;
+        try {
+            Claims claims = getAllClaimsFromToken(token);
+            String orgId = (String) claims.get("organizationId");
+            return orgId != null ? UUID.fromString(orgId) : null;
+        } catch (Exception e) {
+
+            return null;
+        }
     }
 
-    // NEW: Extract authorities from token
+
     @SuppressWarnings("unchecked")
     public List<String> extractAuthorities(String token) {
-        Claims claims = getAllClaimsFromToken(token);
-        return (List<String>) claims.get("authorities");
+        try {
+            Claims claims = getAllClaimsFromToken(token);
+            List<String> authorities = (List<String>) claims.get("authorities");
+            return authorities != null ? authorities : new ArrayList<>();
+        } catch (Exception e) {
+
+            return new ArrayList<>();
+        }
     }
 
     public Date extractExpiration(String token) {
@@ -92,12 +111,29 @@ public class JwtUtil {
                 .getBody();
     }
 
+
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
+
+    public Boolean validateTokenWithOrganization(String token, UserDetails userDetails, UUID expectedOrgId) {
+        if (!validateToken(token, userDetails)) {
+            return false;
+        }
+
+        UUID tokenOrgId = extractOrganizationId(token);
+        return Objects.equals(tokenOrgId, expectedOrgId);
+    }
+
     private Boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
+    }
+
+
+    public Boolean hasOrganizationId(String token) {
+        UUID orgId = extractOrganizationId(token);
+        return orgId != null;
     }
 }

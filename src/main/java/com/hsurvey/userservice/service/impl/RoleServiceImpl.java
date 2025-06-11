@@ -72,168 +72,27 @@ public class RoleServiceImpl implements RoleService {
                 .map(roleMapper::toDto)
                 .collect(Collectors.toList());
     }
-    @Override
-    @Transactional(readOnly = true)
-    public RoleDTO getRoleById(UUID roleId) {
-        return roleRepository.findById(roleId)
-                .map(roleMapper::toDto)
-                .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
-    }
 
-    @Override
-    @Transactional(readOnly = true)
-    public RoleDTO getRoleByNameAndOrganization(String roleName, UUID organizationId) {
-        if (roleName == null || organizationId == null) {
-            throw new IllegalArgumentException("Role name and organization ID cannot be null");
-        }
-
-        return roleRepository.findByNameAndOrganizationId(roleName, organizationId)
-                .map(roleMapper::toDto)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Role not found with name: " + roleName + " in organization: " + organizationId));
-    }
-
-    @Override
-    @Transactional
-    public RoleDTO updateRole(UUID roleId, RoleDTO roleDTO) {
-        Role existingRole = roleRepository.findById(roleId)
-                .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
-
-
-        if (roleDTO.getOrganizationId() != null &&
-                !existingRole.getOrganizationId().equals(roleDTO.getOrganizationId())) {
-            throw new IllegalArgumentException("Cannot change organization ID of existing role");
-        }
-
-        if (!existingRole.getName().equals(roleDTO.getName()) &&
-                roleRepository.existsByNameAndOrganizationId(roleDTO.getName(), existingRole.getOrganizationId())) {
-            throw new IllegalArgumentException("Role with name '" + roleDTO.getName() +
-                    "' already exists in this organization");
-        }
-        existingRole.setName(roleDTO.getName());
-        existingRole.setDescription(roleDTO.getDescription());
-        Role updatedRole = roleRepository.save(existingRole);
-        return roleMapper.toDto(updatedRole);
-    }
-
-    @Override
-    @Transactional
-    public void deleteRole(UUID roleId) {
-        Role role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
-        roleRepository.delete(role);
-    }
-
-    @Override
-    @Transactional
-    public void addPermissionToRole(UUID roleId, UUID permissionId) {
-        Role role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
-        Permission permission = permissionRepository.findById(permissionId)
-                .orElseThrow(() -> new EntityNotFoundException("Permission not found with id: " + permissionId));
-        if (!role.getOrganizationId().equals(permission.getOrganizationId())) {
-            throw new IllegalArgumentException("Permission and role must belong to the same organization");
-        }
-        if (role.getPermissions() == null) {
-            role.setPermissions(new HashSet<>());
-        }
-
-        if (role.getPermissions().add(permission)) {
-            roleRepository.save(role);
-        }
-    }
-
-    @Override
-    @Transactional
-    public void removePermissionFromRole(UUID roleId, UUID permissionId) {
-        Role role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
-
-        if (role.getPermissions() == null) {
-            throw new EntityNotFoundException(
-                    "Permission not found with id: " + permissionId + " in role with id: " + roleId);
-        }
-
-        boolean removed = role.getPermissions().removeIf(p -> p.getId().equals(permissionId));
-
-        if (!removed) {
-            throw new EntityNotFoundException(
-                    "Permission not found with id: " + permissionId + " in role with id: " + roleId);
-        }
-
-        roleRepository.save(role);
-    }
-
-    @Override
-    @Transactional
-    public void addPermissionsToRole(UUID roleId, List<UUID> permissionIds) {
-        Role role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
-        List<Permission> permissions = permissionRepository.findAllById(permissionIds);
-
-        if (permissions.size() != permissionIds.size()) {
-            throw new EntityNotFoundException("Some permissions were not found");
-        }
-
-        boolean invalidPermissions = permissions.stream()
-                .anyMatch(p -> !p.getOrganizationId().equals(role.getOrganizationId()));
-
-        if (invalidPermissions) {
-            throw new IllegalArgumentException("All permissions must belong to the same organization as the role");
-        }
-
-
-        if (role.getPermissions() == null) {
-            role.setPermissions(new HashSet<>());
-        }
-
-        role.getPermissions().addAll(permissions);
-        roleRepository.save(role);
-    }
-
-    @Override
-    @Transactional
-    public void removePermissionsFromRole(UUID roleId, List<UUID> permissionIds) {
-        Role role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
-
-        if (role.getPermissions() == null || role.getPermissions().isEmpty()) {
-            return;
-        }
-
-        permissionIds.forEach(permissionId ->
-                role.getPermissions().removeIf(p -> p.getId().equals(permissionId))
-        );
-
-        roleRepository.save(role);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public boolean existsByNameAndOrganization(String roleName, UUID organizationId) {
-        if (roleName == null || organizationId == null) {
-            return false;
-        }
-        return roleRepository.existsByNameAndOrganizationId(roleName, organizationId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<RoleDTO> findByNameAndOrganization(String roleName, UUID organizationId) {
-        if (roleName == null || organizationId == null) {
-            return Optional.empty();
-        }
-
-        return roleRepository.findByNameAndOrganizationId(roleName, organizationId)
-                .map(roleMapper::toDto);
-    }
 
     @Override
     @Transactional(readOnly = true)
     @RequireOrganizationAccess(organizationIdParam = "organizationId")
     public RoleDTO getRoleByIdAndOrganization(UUID roleId, UUID organizationId) {
+        if (roleId == null) {
+            throw new IllegalArgumentException("Role ID cannot be null");
+        }
+        if (organizationId == null) {
+            throw new IllegalArgumentException("Organization ID cannot be null");
+        }
+
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
+
+        // Verify the role belongs to the specified organization
+        if (!role.getOrganizationId().equals(organizationId)) {
+            throw new EntityNotFoundException("Role not found in the specified organization");
+        }
+
         return roleMapper.toDto(role);
     }
 
@@ -241,8 +100,21 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     @RequireOrganizationAccess(organizationIdParam = "organizationId")
     public void deleteRoleByIdAndOrganization(UUID roleId, UUID organizationId) {
+        if (roleId == null) {
+            throw new IllegalArgumentException("Role ID cannot be null");
+        }
+        if (organizationId == null) {
+            throw new IllegalArgumentException("Organization ID cannot be null");
+        }
+
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
+
+        // Verify the role belongs to the specified organization
+        if (!role.getOrganizationId().equals(organizationId)) {
+            throw new EntityNotFoundException("Role not found in the specified organization");
+        }
+
         roleRepository.delete(role);
     }
 
@@ -250,43 +122,77 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     @RequireOrganizationAccess(organizationIdParam = "organizationId")
     public void addPermissionToRoleInOrganization(UUID roleId, UUID permissionId, UUID organizationId) {
+        if (roleId == null) {
+            throw new IllegalArgumentException("Role ID cannot be null");
+        }
+        if (permissionId == null) {
+            throw new IllegalArgumentException("Permission ID cannot be null");
+        }
+        if (organizationId == null) {
+            throw new IllegalArgumentException("Organization ID cannot be null");
+        }
+
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
+
+        // Verify the role belongs to the specified organization
         if (!role.getOrganizationId().equals(organizationId)) {
-            throw new OrganizationAccessException("Access denied: Role belongs to different organization");
+            throw new EntityNotFoundException("Role not found in the specified organization");
         }
 
         Permission permission = permissionRepository.findById(permissionId)
                 .orElseThrow(() -> new EntityNotFoundException("Permission not found with id: " + permissionId));
+
+        // Verify the permission belongs to the same organization
         if (!permission.getOrganizationId().equals(organizationId)) {
-            throw new OrganizationAccessException("Access denied: Permission belongs to different organization");
+            throw new EntityNotFoundException("Permission not found in the specified organization");
         }
+
+        // Initialize permissions set if null
         if (role.getPermissions() == null) {
             role.setPermissions(new HashSet<>());
         }
+
+        // Add permission if not already present
         if (role.getPermissions().add(permission)) {
             roleRepository.save(role);
         }
     }
+
     @Override
     @Transactional
     @RequireOrganizationAccess(organizationIdParam = "organizationId")
     public void removePermissionFromRoleInOrganization(UUID roleId, UUID permissionId, UUID organizationId) {
+        if (roleId == null) {
+            throw new IllegalArgumentException("Role ID cannot be null");
+        }
+        if (permissionId == null) {
+            throw new IllegalArgumentException("Permission ID cannot be null");
+        }
+        if (organizationId == null) {
+            throw new IllegalArgumentException("Organization ID cannot be null");
+        }
+
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
+
+        // Verify the role belongs to the specified organization
         if (!role.getOrganizationId().equals(organizationId)) {
-            throw new OrganizationAccessException("Access denied: Role belongs to different organization");
+            throw new EntityNotFoundException("Role not found in the specified organization");
         }
-        if (role.getPermissions() == null) {
+
+        if (role.getPermissions() == null || role.getPermissions().isEmpty()) {
             throw new EntityNotFoundException(
                     "Permission not found with id: " + permissionId + " in role with id: " + roleId);
         }
+
         boolean removed = role.getPermissions().removeIf(p -> p.getId().equals(permissionId));
 
         if (!removed) {
             throw new EntityNotFoundException(
                     "Permission not found with id: " + permissionId + " in role with id: " + roleId);
         }
+
         roleRepository.save(role);
     }
 }

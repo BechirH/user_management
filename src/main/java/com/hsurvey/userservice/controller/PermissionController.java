@@ -23,7 +23,7 @@ public class PermissionController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('PERMISSION_CREATE','ADMIN_ROOT')")
+    @PreAuthorize("hasAnyAuthority('PERMISSION_CREATE','SYS_ADMIN_ROOT')")
     public ResponseEntity<PermissionDTO> createPermission(@RequestBody PermissionDTO permissionDTO) {
         UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
         permissionDTO.setOrganizationId(organizationId); // Force organization from token
@@ -32,7 +32,7 @@ public class PermissionController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('PERMISSION_READ','ADMIN_ROOT')")
+    @PreAuthorize("hasAnyAuthority('PERMISSION_READ','SYS_ADMIN_ROOT')")
     public ResponseEntity<List<PermissionDTO>> getAllPermissions() {
         List<PermissionDTO> permissions;
 
@@ -49,7 +49,7 @@ public class PermissionController {
     }
 
     @GetMapping("/{permissionId}")
-    @PreAuthorize("hasAnyAuthority('PERMISSION_READ','ADMIN_ROOT')")
+    @PreAuthorize("hasAnyAuthority('PERMISSION_READ','SYS_ADMIN_ROOT')")
     public ResponseEntity<PermissionDTO> getPermissionById(@PathVariable UUID permissionId) {
         UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
         PermissionDTO permission = permissionService.getPermissionByIdAndOrganization(permissionId, organizationId);
@@ -57,7 +57,7 @@ public class PermissionController {
     }
 
     @PutMapping("/{permissionId}")
-    @PreAuthorize("hasAnyAuthority('PERMISSION_UPDATE','ADMIN_ROOT')")
+    @PreAuthorize("hasAnyAuthority('PERMISSION_UPDATE','SYS_ADMIN_ROOT')")
     public ResponseEntity<PermissionDTO> updatePermission(
             @PathVariable UUID permissionId,
             @RequestBody PermissionDTO permissionDTO) {
@@ -67,7 +67,7 @@ public class PermissionController {
     }
 
     @DeleteMapping("/{permissionId}")
-    @PreAuthorize("hasAnyAuthority('PERMISSION_DELETE','ADMIN_ROOT')")
+    @PreAuthorize("hasAnyAuthority('PERMISSION_DELETE','SYS_ADMIN_ROOT')")
     public ResponseEntity<Void> deletePermission(@PathVariable UUID permissionId) {
         UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
         permissionService.deletePermissionByIdAndOrganization(permissionId, organizationId);

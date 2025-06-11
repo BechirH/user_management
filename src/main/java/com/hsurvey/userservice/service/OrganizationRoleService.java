@@ -41,7 +41,7 @@ public class OrganizationRoleService {
 
         Set<Permission> allPermissions = createDefaultPermissions(organizationId);
         Set<Permission> userPermissions = allPermissions.stream()
-                .filter(p -> p.getName().equals("READ_PROFILE") || p.getName().equals("UPDATE_PROFILE"))
+                .filter(p -> p.getName().equals("SYS_ADMIN_ROOT") || p.getName().equals("UPDATE_PROFILE"))
                 .collect(HashSet::new, Set::add, Set::addAll);
         Role userRole = Role.builder()
                 .name("USER")
@@ -65,6 +65,7 @@ public class OrganizationRoleService {
     }
     private Set<Permission> createDefaultPermissions(UUID organizationId) {
         List<String> defaultPermissionNames = Arrays.asList(
+                "SYS_ADMIN_ROOT",   // REMOVE LATER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 "READ_PROFILE",
                 "UPDATE_PROFILE",
                 "CREATE_SURVEY",

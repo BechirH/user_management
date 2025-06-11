@@ -13,6 +13,5 @@ public interface PermissionRepository extends JpaRepository<Permission, UUID> {
     Optional<Permission> findByNameAndOrganizationId(String name, UUID organizationId);
     boolean existsByNameAndOrganizationId(String name, UUID organizationId);
     List<Permission> findByOrganizationId(UUID organizationId);
-    long countByOrganizationId(UUID organizationId);
-    void deleteByOrganizationId(UUID organizationId);
+
 }
