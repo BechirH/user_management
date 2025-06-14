@@ -23,7 +23,7 @@ public interface UserMapper {
     @Mapping(target = "organizationId", source = "organizationId", qualifiedByName = "validateOrgId")
     User toEntity(UserDTO userDTO);
 
-    // Existing role mapping methods
+
     @Named("rolesToStrings")
     default Set<String> rolesToStrings(Set<Role> roles) {
         if (roles == null) {

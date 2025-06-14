@@ -68,7 +68,6 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Username already exists");
         }
 
-
         Role defaultUserRole = organizationRoleService.getDefaultUserRole(orgId);
 
         User user = User.builder()
@@ -83,7 +82,8 @@ public class AuthServiceImpl implements AuthService {
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
 
-        String jwtToken = jwtUtil.generateToken(userDetails, orgId);
+
+        String jwtToken = jwtUtil.generateToken(userDetails, savedUser.getId(), orgId);
 
         return AuthResponse.builder()
                 .success(true)
@@ -110,7 +110,7 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Failed to verify organization", e);
         }
 
-        // Check if admin already exists for this organization
+
         if (adminAlreadyExistsForOrganization(organizationId)) {
             throw new AdminAlreadyExistsException("Admin user already exists for this organization");
         }
@@ -139,7 +139,8 @@ public class AuthServiceImpl implements AuthService {
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
 
-        String jwtToken = jwtUtil.generateToken(userDetails, organizationId);
+
+        String jwtToken = jwtUtil.generateToken(userDetails, savedUser.getId(), organizationId);
 
         return AuthResponse.builder()
                 .success(true)
@@ -150,13 +151,13 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
-    // Helper method to check if admin exists
+
     private boolean adminAlreadyExistsForOrganization(UUID organizationId) {
         Role adminRole;
         try {
             adminRole = organizationRoleService.getDefaultAdminRole(organizationId);
         } catch (RuntimeException e) {
-            // If admin role doesn't exist yet, no admin can exist
+
             return false;
         }
 
@@ -180,7 +181,8 @@ public class AuthServiceImpl implements AuthService {
 
             UUID organizationId = user.getOrganizationId();
 
-            String jwtToken = jwtUtil.generateToken(userDetails, organizationId);
+
+            String jwtToken = jwtUtil.generateToken(userDetails, user.getId(), organizationId);
 
             return AuthResponse.builder()
                     .success(true)
