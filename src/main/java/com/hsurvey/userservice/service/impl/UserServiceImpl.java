@@ -120,6 +120,15 @@ public class UserServiceImpl implements UserService {
 
         return userMapper.toDto(user);
     }
+    // CHECK EXISTANCE
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsById(UUID userId) {
+        if (userId == null) {
+            return false;
+        }
+        return userRepository.existsById(userId);
+    }
 
     // UPDATE METHODS
     @Override

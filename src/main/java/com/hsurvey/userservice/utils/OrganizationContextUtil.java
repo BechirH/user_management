@@ -20,9 +20,7 @@ public class OrganizationContextUtil {
         this.jwtUtil = jwtUtil;
     }
 
-    /**
-     * Extract organization ID from the current JWT token
-     */
+
     public UUID getCurrentOrganizationId() {
         String token = extractTokenFromRequest();
         if (token == null) {
@@ -37,9 +35,7 @@ public class OrganizationContextUtil {
         return organizationId;
     }
 
-    /**
-     * Check if current user is a root admin (can access all organizations)
-     */
+
     public boolean isRootAdmin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {
@@ -52,9 +48,6 @@ public class OrganizationContextUtil {
     }
 
 
-    /**
-     * Validate that the user has access to a specific organization's resource
-     */
     public void validateOrganizationAccess(UUID resourceOrganizationId) {
         if (resourceOrganizationId == null) {
             throw new IllegalArgumentException("Resource organization ID cannot be null");
@@ -71,17 +64,13 @@ public class OrganizationContextUtil {
         }
     }
 
-    /**
-     * Get the current user's authorities
-     */
+
     public Collection<? extends GrantedAuthority> getCurrentAuthorities() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication != null ? authentication.getAuthorities() : null;
     }
 
-    /**
-     * Extract JWT token from the current HTTP request
-     */
+
     private String extractTokenFromRequest() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {
@@ -98,9 +87,7 @@ public class OrganizationContextUtil {
         return null;
     }
 
-    /**
-     * Get current organization ID, returning null if not available (for optional scenarios)
-     */
+
     public UUID getCurrentOrganizationIdOrNull() {
         try {
             return getCurrentOrganizationId();
@@ -114,7 +101,7 @@ public class OrganizationContextUtil {
             throw new IllegalArgumentException("Resource organization ID cannot be null");
         }
 
-        // Root admins can access all organizations
+
         if (isRootAdmin()) {
             return;
         }
@@ -126,16 +113,14 @@ public class OrganizationContextUtil {
         }
     }
 
-    /**
-     * Check if user has access to specific organization without throwing exception
-     */
+
     public boolean hasOrganizationAccess(UUID organizationId) {
         if (organizationId == null) {
             return false;
         }
 
         try {
-            // Root admins can access all organizations
+
             if (isRootAdmin()) {
                 return true;
             }

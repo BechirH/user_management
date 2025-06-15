@@ -59,7 +59,11 @@ public class UserController {
 
         return ResponseEntity.ok(users);
     }
-
+    @GetMapping("/{userId}/exists")
+    public ResponseEntity<Boolean> checkUserExists(@PathVariable UUID userId) {
+        boolean exists = userService.existsById(userId);
+        return ResponseEntity.ok(exists);
+    }
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('USER_READ','SYS_ADMIN_ROOT')")
     public ResponseEntity<UserDTO> getUserById(@PathVariable UUID id) {

@@ -30,7 +30,7 @@ public class OrganizationRoleService {
                 .name("USER")
                 .organizationId(organizationId)
                 .description("Default user role with no permissions")
-                .permissions(new HashSet<>()) // Empty set - no permissions
+                .permissions(new HashSet<>())
                 .build();
 
 
@@ -62,8 +62,25 @@ public class OrganizationRoleService {
                 "USER_CREATE",
                 "USER_READ",
                 "USER_UPDATE",
-                "USER_DELETE"
-
+                "USER_DELETE",
+                "SURVEY_READ",
+                "SURVEY_CREATE",
+                "SURVEY_UPDATE",
+                "SURVEY_DELETE",
+                "SURVEY_LOCK",
+                "SURVEY_UNLOCK",
+                "OPTION_CREATE",
+                "OPTION_READ",
+                "OPTION_UPDATE",
+                "OPTION_DELETE",
+                "OPTION_LOCK",
+                "OPTION_UNLOCK",
+                "QUESTION_CREATE",
+                "QUESTION_READ",
+                "QUESTION_UPDATE",
+                "QUESTION_DELETE",
+                "QUESTION_LOCK",
+                "QUESTION_UNLOCK"
         );
 
         Set<Permission> permissions = new HashSet<>();
