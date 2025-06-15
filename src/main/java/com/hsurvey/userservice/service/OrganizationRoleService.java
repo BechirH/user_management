@@ -80,7 +80,18 @@ public class OrganizationRoleService {
                 "QUESTION_UPDATE",
                 "QUESTION_DELETE",
                 "QUESTION_LOCK",
-                "QUESTION_UNLOCK"
+                "QUESTION_UNLOCK",
+                "ORGANIZATION_READ",
+                "ORGANIZATION_UPDATE",
+                "ORGANIZATION_DELETE",
+                "DEPARTMENT_CREATE",
+                "DEPARTMENT_READ",
+                "DEPARTMENT_UPDATE",
+                "DEPARTMENT_DELETE",
+                "TEAM_CREATE",
+                "TEAM_READ",
+                "TEAM_UPDATE",
+                "TEAM_DELETE"
         );
 
         Set<Permission> permissions = new HashSet<>();
