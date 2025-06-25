@@ -14,4 +14,6 @@ public class UserDTO {
     private String password;
     private Set<String> roles;
     private UUID organizationId;
+    private UUID departmentId;
+    private UUID teamId;
 }

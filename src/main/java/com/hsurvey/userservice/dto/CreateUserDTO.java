@@ -28,4 +28,6 @@ public class CreateUserDTO {
     private String password;
 
     private UUID organizationId;
+    private UUID departmentId;
+    private UUID teamId;
 }
