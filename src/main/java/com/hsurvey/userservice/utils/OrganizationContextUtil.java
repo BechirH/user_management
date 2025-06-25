@@ -144,4 +144,40 @@ public class OrganizationContextUtil {
                 .map(GrantedAuthority::getAuthority)
                 .anyMatch(auth -> auth.equals(authority));
     }
+
+    public UUID getCurrentDepartmentId() {
+        String token = extractTokenFromRequest();
+        if (token == null) {
+            return null;
+        }
+
+        return jwtUtil.extractDepartmentId(token);
+    }
+
+    public UUID getCurrentTeamId() {
+        String token = extractTokenFromRequest();
+        if (token == null) {
+            return null;
+        }
+
+        return jwtUtil.extractTeamId(token);
+    }
+
+    public boolean hasDepartmentId() {
+        String token = extractTokenFromRequest();
+        if (token == null) {
+            return false;
+        }
+
+        return jwtUtil.hasDepartmentId(token);
+    }
+
+    public boolean hasTeamId() {
+        String token = extractTokenFromRequest();
+        if (token == null) {
+            return false;
+        }
+
+        return jwtUtil.hasTeamId(token);
+    }
 }

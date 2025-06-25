@@ -28,12 +28,6 @@ public class User {
     @Column(name = "organization_id", nullable = false)
     private UUID organizationId;
 
-    @Column(name = "department_id", nullable = true)
-    private UUID departmentId;
-
-    @Column(name = "team_id", nullable = true)
-    private UUID teamId;
-
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",

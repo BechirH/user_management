@@ -17,14 +17,10 @@ public interface UserMapper {
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "roles", source = "roles", qualifiedByName = "rolesToStrings")
     @Mapping(target = "organizationId", source = "organizationId")
-    @Mapping(target = "departmentId", source = "departmentId")
-    @Mapping(target = "teamId", source = "teamId")
     UserDTO toDto(User user);
 
     @Mapping(target = "roles", source = "roles", qualifiedByName = "stringsToRoles")
     @Mapping(target = "organizationId", source = "organizationId", qualifiedByName = "validateOrgId")
-    @Mapping(target = "departmentId", source = "departmentId")
-    @Mapping(target = "teamId", source = "teamId")
     User toEntity(UserDTO userDTO);
 
 

@@ -12,6 +12,8 @@ import com.hsurvey.userservice.service.AuthService;
 import com.hsurvey.userservice.service.CustomUserDetailsService;
 import com.hsurvey.userservice.service.OrganizationRoleService;
 import com.hsurvey.userservice.service.clients.OrganizationClient;
+import com.hsurvey.userservice.service.clients.DepartmentClient;
+import com.hsurvey.userservice.service.clients.TeamClient;
 import com.hsurvey.userservice.utils.JwtUtil;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -23,12 +25,14 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Set;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -37,6 +41,8 @@ public class AuthServiceImpl implements AuthService {
     private final CustomUserDetailsService userDetailsService;
     private final OrganizationClient organizationClient;
     private final OrganizationRoleService organizationRoleService;
+    private final DepartmentClient departmentClient;
+    private final TeamClient teamClient;
 
     @Override
     @Transactional
@@ -82,8 +88,11 @@ public class AuthServiceImpl implements AuthService {
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
 
+        // Fetch department and team IDs for the user
+        UUID departmentId = getDepartmentIdForUser(savedUser.getId());
+        UUID teamId = getTeamIdForUser(savedUser.getId());
 
-        String jwtToken = jwtUtil.generateToken(userDetails, savedUser.getId(), orgId);
+        String jwtToken = jwtUtil.generateToken(userDetails, savedUser.getId(), orgId, departmentId, teamId);
 
         return AuthResponse.builder()
                 .success(true)
@@ -139,8 +148,11 @@ public class AuthServiceImpl implements AuthService {
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
 
+        // Fetch department and team IDs for the user
+        UUID departmentId = getDepartmentIdForUser(savedUser.getId());
+        UUID teamId = getTeamIdForUser(savedUser.getId());
 
-        String jwtToken = jwtUtil.generateToken(userDetails, savedUser.getId(), organizationId);
+        String jwtToken = jwtUtil.generateToken(userDetails, savedUser.getId(), organizationId, departmentId, teamId);
 
         return AuthResponse.builder()
                 .success(true)
@@ -164,6 +176,38 @@ public class AuthServiceImpl implements AuthService {
         return userRepository.existsByOrganizationIdAndRolesContaining(organizationId, adminRole);
     }
 
+    private UUID getDepartmentIdForUser(UUID userId) {
+        try {
+            ResponseEntity<UUID> response = departmentClient.getDepartmentIdByUserId(userId);
+            if (response != null && response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                log.debug("Found department ID {} for user {}", response.getBody(), userId);
+                return response.getBody();
+            }
+        } catch (Exception e) {
+            // Log the exception but don't fail the authentication
+            // User might not be assigned to a department yet
+            log.debug("Could not fetch department ID for user {}: {}", userId, e.getMessage());
+        }
+        log.debug("No department ID found for user {}", userId);
+        return null;
+    }
+
+    private UUID getTeamIdForUser(UUID userId) {
+        try {
+            ResponseEntity<UUID> response = teamClient.getTeamIdByUserId(userId);
+            if (response != null && response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                log.debug("Found team ID {} for user {}", response.getBody(), userId);
+                return response.getBody();
+            }
+        } catch (Exception e) {
+            // Log the exception but don't fail the authentication
+            // User might not be assigned to a team yet
+            log.debug("Could not fetch team ID for user {}: {}", userId, e.getMessage());
+        }
+        log.debug("No team ID found for user {}", userId);
+        return null;
+    }
+
     @Override
     public AuthResponse authenticate(AuthRequest request) {
         try {
@@ -181,8 +225,11 @@ public class AuthServiceImpl implements AuthService {
 
             UUID organizationId = user.getOrganizationId();
 
+            // Fetch department and team IDs for the user
+            UUID departmentId = getDepartmentIdForUser(user.getId());
+            UUID teamId = getTeamIdForUser(user.getId());
 
-            String jwtToken = jwtUtil.generateToken(userDetails, user.getId(), organizationId);
+            String jwtToken = jwtUtil.generateToken(userDetails, user.getId(), organizationId, departmentId, teamId);
 
             return AuthResponse.builder()
                     .success(true)

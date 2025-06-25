@@ -64,8 +64,6 @@ public class UserServiceImpl implements UserService {
         user.setEmail(createUserDTO.getEmail());
         user.setPassword(passwordEncoder.encode(createUserDTO.getPassword()));
         user.setOrganizationId(organizationId);
-        user.setDepartmentId(createUserDTO.getDepartmentId());
-        user.setTeamId(createUserDTO.getTeamId());
         user.setRoles(new HashSet<>());
 
         user = userRepository.save(user);
@@ -181,8 +179,6 @@ public class UserServiceImpl implements UserService {
         if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
             existingUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         }
-        existingUser.setDepartmentId(userDTO.getDepartmentId());
-        existingUser.setTeamId(userDTO.getTeamId());
 
         User updatedUser = userRepository.save(existingUser);
         return userMapper.toDto(updatedUser);
