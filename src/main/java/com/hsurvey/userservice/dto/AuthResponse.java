@@ -3,6 +3,7 @@ package com.hsurvey.userservice.dto;
 import lombok.*;
 
 import java.util.UUID;
+import java.util.List;
 
 @Data
 @Builder
@@ -14,4 +15,5 @@ public class AuthResponse {
     private String username;
     private String message;
     private UUID organizationId;
+    private List<String> roles;
 }

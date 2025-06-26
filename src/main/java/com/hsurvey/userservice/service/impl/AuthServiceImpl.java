@@ -99,6 +99,7 @@ public class AuthServiceImpl implements AuthService {
                 .token(jwtToken)
                 .username(savedUser.getUsername())
                 .organizationId(orgId)
+                .roles(savedUser.getRoles().stream().map(Role::getName).toList())
                 .message("User registered successfully")
                 .build();
     }
@@ -159,6 +160,7 @@ public class AuthServiceImpl implements AuthService {
                 .token(jwtToken)
                 .username(savedUser.getUsername())
                 .organizationId(organizationId)
+                .roles(savedUser.getRoles().stream().map(Role::getName).toList())
                 .message("Admin registered successfully")
                 .build();
     }
@@ -184,8 +186,7 @@ public class AuthServiceImpl implements AuthService {
                 return response.getBody();
             }
         } catch (Exception e) {
-            // Log the exception but don't fail the authentication
-            // User might not be assigned to a department yet
+
             log.debug("Could not fetch department ID for user {}: {}", userId, e.getMessage());
         }
         log.debug("No department ID found for user {}", userId);
@@ -236,6 +237,7 @@ public class AuthServiceImpl implements AuthService {
                     .token(jwtToken)
                     .username(userDetails.getUsername())
                     .organizationId(organizationId)
+                    .roles(user.getRoles().stream().map(Role::getName).toList())
                     .message("Login successful")
                     .build();
         } catch (AuthenticationException e) {
