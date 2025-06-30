@@ -27,7 +27,7 @@ public class JwtUtil {
         this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
     }
 
-    public String generateToken(UserDetails userDetails, UUID userId, UUID organizationId) {
+    public String generateToken(UserDetails userDetails, UUID userId, UUID organizationId, UUID departmentId, UUID teamId) {
         Map<String, Object> claims = new HashMap<>();
 
         claims.put("authorities", userDetails.getAuthorities().stream()
@@ -42,14 +42,20 @@ public class JwtUtil {
             claims.put("organizationId", organizationId.toString());
         }
 
+        if (departmentId != null) {
+            claims.put("departmentId", departmentId.toString());
+        }
+
+        if (teamId != null) {
+            claims.put("teamId", teamId.toString());
+        }
+
         return createToken(claims, userDetails.getUsername());
     }
 
-
-
-
-
-
+    public String generateToken(UserDetails userDetails, UUID userId, UUID organizationId) {
+        return generateToken(userDetails, userId, organizationId, null, null);
+    }
 
     private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
@@ -80,6 +86,26 @@ public class JwtUtil {
             Claims claims = getAllClaimsFromToken(token);
             String orgId = (String) claims.get("organizationId");
             return orgId != null ? UUID.fromString(orgId) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public UUID extractDepartmentId(String token) {
+        try {
+            Claims claims = getAllClaimsFromToken(token);
+            String departmentId = (String) claims.get("departmentId");
+            return departmentId != null ? UUID.fromString(departmentId) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public UUID extractTeamId(String token) {
+        try {
+            Claims claims = getAllClaimsFromToken(token);
+            String teamId = (String) claims.get("teamId");
+            return teamId != null ? UUID.fromString(teamId) : null;
         } catch (Exception e) {
             return null;
         }
@@ -150,5 +176,15 @@ public class JwtUtil {
     public Boolean hasUserId(String token) {
         UUID userId = extractUserId(token);
         return userId != null;
+    }
+
+    public Boolean hasDepartmentId(String token) {
+        UUID departmentId = extractDepartmentId(token);
+        return departmentId != null;
+    }
+
+    public Boolean hasTeamId(String token) {
+        UUID teamId = extractTeamId(token);
+        return teamId != null;
     }
 }
