@@ -48,15 +48,20 @@ public class UserServiceImpl implements UserService {
         return createUserInternal(createUserDTO, targetOrganizationId);
     }
 
+
     private UserDTO createUserInternal(CreateUserDTO createUserDTO, UUID organizationId) {
         if (organizationId == null) {
             throw new IllegalArgumentException("Organization ID is required");
         }
+
+        // Check for global email uniqueness (across all organizations)
+        if (userRepository.existsByEmail(createUserDTO.getEmail())) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+
+        // Check for username uniqueness within the organization
         if (userRepository.existsByUsernameAndOrganizationId(createUserDTO.getUsername(), organizationId)) {
             throw new IllegalArgumentException("Username already exists in this organization");
-        }
-        if (userRepository.existsByEmailAndOrganizationId(createUserDTO.getEmail(), organizationId)) {
-            throw new IllegalArgumentException("Email already exists in this organization");
         }
 
         User user = new User();
@@ -143,35 +148,35 @@ public class UserServiceImpl implements UserService {
 
         return updateUserInternal(existingUser, userDTO);
     }
-
-    @Override
-    @Transactional
-    @RequireOrganizationAccess(organizationIdParam = "organizationId")
-    public UserDTO updateUserInOrganization(UUID id, UserDTO userDTO, UUID organizationId) {
-        if (id == null) {
-            throw new IllegalArgumentException("User ID cannot be null");
-        }
-        if (organizationId == null) {
-            throw new IllegalArgumentException("Organization ID cannot be null");
-        }
-
-        User existingUser = userRepository.findByIdAndOrganizationId(id, organizationId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id + " in organization: " + organizationId));
-
-
-        if (!existingUser.getUsername().equals(userDTO.getUsername()) &&
-                userRepository.existsByUsernameAndOrganizationId(userDTO.getUsername(), organizationId)) {
-            throw new IllegalArgumentException("Username already exists in this organization");
-        }
-
-
-        if (!existingUser.getEmail().equals(userDTO.getEmail()) &&
-                userRepository.existsByEmailAndOrganizationId(userDTO.getEmail(), organizationId)) {
-            throw new IllegalArgumentException("Email already exists in this organization");
-        }
-
-        return updateUserInternal(existingUser, userDTO);
+// update method
+@Override
+@Transactional
+@RequireOrganizationAccess(organizationIdParam = "organizationId")
+public UserDTO updateUserInOrganization(UUID id, UserDTO userDTO, UUID organizationId) {
+    if (id == null) {
+        throw new IllegalArgumentException("User ID cannot be null");
     }
+    if (organizationId == null) {
+        throw new IllegalArgumentException("Organization ID cannot be null");
+    }
+
+    User existingUser = userRepository.findByIdAndOrganizationId(id, organizationId)
+            .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id + " in organization: " + organizationId));
+
+    // Check for username uniqueness within the organization
+    if (!existingUser.getUsername().equals(userDTO.getUsername()) &&
+            userRepository.existsByUsernameAndOrganizationId(userDTO.getUsername(), organizationId)) {
+        throw new IllegalArgumentException("Username already exists in this organization");
+    }
+
+    // Check for global email uniqueness (only if email is being changed)
+    if (!existingUser.getEmail().equals(userDTO.getEmail()) &&
+            userRepository.existsByEmail(userDTO.getEmail())) {
+        throw new IllegalArgumentException("Email already exists");
+    }
+
+    return updateUserInternal(existingUser, userDTO);
+}
 
     private UserDTO updateUserInternal(User existingUser, UserDTO userDTO) {
         existingUser.setUsername(userDTO.getUsername());
