@@ -179,8 +179,15 @@ public UserDTO updateUserInOrganization(UUID id, UserDTO userDTO, UUID organizat
 }
 
     private UserDTO updateUserInternal(User existingUser, UserDTO userDTO) {
-        existingUser.setUsername(userDTO.getUsername());
-        existingUser.setEmail(userDTO.getEmail());
+        // Only update fields that are provided (not null or empty)
+        if (userDTO.getUsername() != null && !userDTO.getUsername().trim().isEmpty()) {
+            existingUser.setUsername(userDTO.getUsername());
+        }
+
+        if (userDTO.getEmail() != null && !userDTO.getEmail().trim().isEmpty()) {
+            existingUser.setEmail(userDTO.getEmail());
+        }
+
         if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
             existingUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         }
