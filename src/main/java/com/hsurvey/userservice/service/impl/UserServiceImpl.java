@@ -231,24 +231,26 @@ public UserDTO updateUserInOrganization(UUID id, UserDTO userDTO, UUID organizat
             throw new IllegalArgumentException("Role ID cannot be null");
         }
 
+        // Verify user exists
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
 
+        // Verify role exists
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
 
-        if (user.getRoles() == null) {
-            user.setRoles(new HashSet<>());
+        // Check if relationship already exists
+        if (!userRepository.hasRole(userId, roleId)) {
+            // Add the role relationship directly in the database
+            userRepository.addRoleToUser(userId, roleId);
         }
 
-        if (user.getRoles().add(role)) {
-            User updatedUser = userRepository.save(user);
-            return userMapper.toDto(updatedUser);
-        }
+        // Fetch the updated user with roles
+        User updatedUser = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
 
-        return userMapper.toDto(user);
+        return userMapper.toDto(updatedUser);
     }
-
     @Override
     @Transactional
     @RequireOrganizationAccess(organizationIdParam = "organizationId")
@@ -263,9 +265,11 @@ public UserDTO updateUserInOrganization(UUID id, UserDTO userDTO, UUID organizat
             throw new IllegalArgumentException("Organization ID cannot be null");
         }
 
+        // Verify user exists in organization
         User user = userRepository.findByIdAndOrganizationId(userId, organizationId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId + " in organization: " + organizationId));
 
+        // Verify role exists and belongs to the same organization
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
 
@@ -273,16 +277,17 @@ public UserDTO updateUserInOrganization(UUID id, UserDTO userDTO, UUID organizat
             throw new EntityNotFoundException("Role not found in the specified organization");
         }
 
-        if (user.getRoles() == null) {
-            user.setRoles(new HashSet<>());
+        // Check if relationship already exists
+        if (!userRepository.hasRole(userId, roleId)) {
+            // Add the role relationship directly in the database
+            userRepository.addRoleToUser(userId, roleId);
         }
 
-        if (user.getRoles().add(role)) {
-            User updatedUser = userRepository.save(user);
-            return userMapper.toDto(updatedUser);
-        }
+        // Fetch the updated user with roles
+        User updatedUser = userRepository.findByIdAndOrganizationId(userId, organizationId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId + " in organization: " + organizationId));
 
-        return userMapper.toDto(user);
+        return userMapper.toDto(updatedUser);
     }
 
     @Override
@@ -295,20 +300,22 @@ public UserDTO updateUserInOrganization(UUID id, UserDTO userDTO, UUID organizat
             throw new IllegalArgumentException("Role ID cannot be null");
         }
 
+        // Verify user exists
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
 
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+        // Check if relationship exists
+        if (!userRepository.hasRole(userId, roleId)) {
             throw new EntityNotFoundException("Role not found with id: " + roleId + " for user with id: " + userId);
         }
 
-        boolean removed = user.getRoles().removeIf(r -> r.getId().equals(roleId));
+        // Remove the role relationship directly from the database
+        userRepository.removeRoleFromUser(userId, roleId);
 
-        if (!removed) {
-            throw new EntityNotFoundException("Role not found with id: " + roleId + " for user with id: " + userId);
-        }
+        // Fetch the updated user
+        User updatedUser = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
 
-        User updatedUser = userRepository.save(user);
         return userMapper.toDto(updatedUser);
     }
 
@@ -326,20 +333,22 @@ public UserDTO updateUserInOrganization(UUID id, UserDTO userDTO, UUID organizat
             throw new IllegalArgumentException("Organization ID cannot be null");
         }
 
+        // Verify user exists in organization
         User user = userRepository.findByIdAndOrganizationId(userId, organizationId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId + " in organization: " + organizationId));
 
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+        // Check if relationship exists
+        if (!userRepository.hasRole(userId, roleId)) {
             throw new EntityNotFoundException("Role not found with id: " + roleId + " for user with id: " + userId);
         }
 
-        boolean removed = user.getRoles().removeIf(r -> r.getId().equals(roleId));
+        // Remove the role relationship directly from the database
+        userRepository.removeRoleFromUser(userId, roleId);
 
-        if (!removed) {
-            throw new EntityNotFoundException("Role not found with id: " + roleId + " for user with id: " + userId);
-        }
+        // Fetch the updated user
+        User updatedUser = userRepository.findByIdAndOrganizationId(userId, organizationId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId + " in organization: " + organizationId));
 
-        User updatedUser = userRepository.save(user);
         return userMapper.toDto(updatedUser);
     }
 }
