@@ -54,12 +54,12 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Organization ID is required");
         }
 
-        // Check for global email uniqueness (across all organizations)
+
         if (userRepository.existsByEmail(createUserDTO.getEmail())) {
             throw new IllegalArgumentException("Email already exists");
         }
 
-        // Check for username uniqueness within the organization
+
         if (userRepository.existsByUsernameAndOrganizationId(createUserDTO.getUsername(), organizationId)) {
             throw new IllegalArgumentException("Username already exists in this organization");
         }
@@ -107,6 +107,13 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
 
         return userMapper.toDto(user);
+    }
+    // bulk fetch
+    public List<UserDTO> getUsersByIds(List<UUID> userIds) {
+        List<User> users = userRepository.findAllById(userIds);
+        return users.stream()
+                .map(userMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override

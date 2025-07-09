@@ -16,8 +16,12 @@ public interface UserService {
     UserDTO getUserById(UUID userId);
     UserDTO getUserByIdAndOrganization(UUID userId, UUID organizationId);
 
+    // Bulk read method for internal service calls
+    List<UserDTO> getUsersByIds(List<UUID> userIds);
+
     // Check existence method
     boolean existsById(UUID userId);
+
     // Update methods
     UserDTO updateUser(UUID id, UserDTO userDTO);
     UserDTO updateUserInOrganization(UUID id, UserDTO userDTO, UUID organizationId);

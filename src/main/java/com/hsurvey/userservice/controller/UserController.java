@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.hsurvey.userservice.dto.CreateUserDTO;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -78,6 +79,19 @@ public class UserController {
 
         return ResponseEntity.ok(userDTO);
     }
+//------------
+
+    @GetMapping("/bulk")
+    public ResponseEntity<List<UserDTO>> getUsersByIds(@RequestParam("ids") List<UUID> userIds) {
+
+        if (userIds == null || userIds.isEmpty()) {
+            return ResponseEntity.ok(Collections.emptyList());
+        }
+
+        List<UserDTO> users = userService.getUsersByIds(userIds);
+        return ResponseEntity.ok(users);
+    }
+
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('USER_UPDATE','SYS_ADMIN_ROOT')")
