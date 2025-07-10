@@ -61,6 +61,35 @@ public class AuthController {
         return ResponseEntity.ok(authResponse);
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response, HttpServletRequest request) {
+        // Remove cookies
+        jakarta.servlet.http.Cookie accessCookie = new jakarta.servlet.http.Cookie("access_token", "");
+        accessCookie.setHttpOnly(true);
+        accessCookie.setPath("/");
+        accessCookie.setMaxAge(0);
+        accessCookie.setSecure(true);
+        response.addCookie(accessCookie);
+
+        jakarta.servlet.http.Cookie refreshCookie = new jakarta.servlet.http.Cookie("refresh_token", "");
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setPath("/api/auth/refresh");
+        refreshCookie.setMaxAge(0);
+        refreshCookie.setSecure(true);
+        response.addCookie(refreshCookie);
+
+        // Optionally: Remove refresh token from DB
+        if (request.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+                if ("refresh_token".equals(cookie.getName())) {
+                    ((com.hsurvey.userservice.service.impl.AuthServiceImpl)authService).deleteRefreshToken(cookie.getValue());
+                }
+            }
+        }
+
+        return ResponseEntity.ok().body("Logged out");
+    }
+
     @GetMapping("/me")
     public ResponseEntity<AuthResponse> getCurrentUser(HttpServletRequest request) {
         String token = null;
