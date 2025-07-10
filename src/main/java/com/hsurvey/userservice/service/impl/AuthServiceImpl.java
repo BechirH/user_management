@@ -106,7 +106,6 @@ public class AuthServiceImpl implements AuthService {
 
         return AuthResponse.builder()
                 .success(true)
-                .token(jwtToken)
                 .username(savedUser.getUsername())
                 .organizationId(orgId)
                 .roles(savedUser.getRoles().stream().map(Role::getName).toList())
@@ -169,7 +168,6 @@ public class AuthServiceImpl implements AuthService {
 
         return AuthResponse.builder()
                 .success(true)
-                .token(jwtToken)
                 .username(savedUser.getUsername())
                 .organizationId(organizationId)
                 .roles(savedUser.getRoles().stream().map(Role::getName).toList())
@@ -242,7 +240,6 @@ public class AuthServiceImpl implements AuthService {
             setAuthCookies(response, jwtToken, refreshToken.getToken());
             return AuthResponse.builder()
                     .success(true)
-                    .token(jwtToken)
                     .username(userDetails.getUsername())
                     .organizationId(organizationId)
                     .roles(user.getRoles().stream().map(Role::getName).toList())
@@ -272,7 +269,6 @@ public class AuthServiceImpl implements AuthService {
         setAuthCookies(response, jwtToken, newRefreshToken.getToken());
         return AuthResponse.builder()
                 .success(true)
-                .token(jwtToken)
                 .username(user.getUsername())
                 .organizationId(organizationId)
                 .roles(user.getRoles().stream().map(Role::getName).toList())

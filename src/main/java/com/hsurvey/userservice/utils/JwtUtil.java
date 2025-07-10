@@ -34,6 +34,8 @@ public class JwtUtil {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList()));
 
+        claims.put("username", userDetails.getUsername());
+
         if (userId != null) {
             claims.put("userId", userId.toString());
         }
