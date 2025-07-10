@@ -6,8 +6,10 @@ import com.hsurvey.userservice.dto.RegisterRequest;
 import com.hsurvey.userservice.dto.AdminRegisterRequest;
 import com.hsurvey.userservice.entities.Role;
 import com.hsurvey.userservice.entities.User;
+import com.hsurvey.userservice.entities.RefreshToken;
 import com.hsurvey.userservice.exception.AdminAlreadyExistsException;
 import com.hsurvey.userservice.repositories.UserRepository;
+import com.hsurvey.userservice.repositories.RefreshTokenRepository;
 import com.hsurvey.userservice.service.AuthService;
 import com.hsurvey.userservice.service.CustomUserDetailsService;
 import com.hsurvey.userservice.service.OrganizationRoleService;
@@ -27,8 +29,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -43,10 +48,13 @@ public class AuthServiceImpl implements AuthService {
     private final OrganizationRoleService organizationRoleService;
     private final DepartmentClient departmentClient;
     private final TeamClient teamClient;
+    private final RefreshTokenRepository refreshTokenRepository;
+    @Value("${jwt.refreshExpiration:604800000}") // 7 days default
+    private long refreshExpiration;
 
     @Override
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResponse register(RegisterRequest request, HttpServletResponse response) {
         UUID orgId;
         try {
             orgId = UUID.fromString(request.getInviteCode());
@@ -93,6 +101,8 @@ public class AuthServiceImpl implements AuthService {
         UUID teamId = getTeamIdForUser(savedUser.getId());
 
         String jwtToken = jwtUtil.generateToken(userDetails, savedUser.getId(), orgId, departmentId, teamId);
+        RefreshToken refreshToken = createRefreshToken(savedUser);
+        setAuthCookies(response, jwtToken, refreshToken.getToken());
 
         return AuthResponse.builder()
                 .success(true)
@@ -106,7 +116,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public AuthResponse registerAdmin(AdminRegisterRequest request, UUID organizationId) {
+    public AuthResponse registerAdmin(AdminRegisterRequest request, UUID organizationId, HttpServletResponse response) {
 
         try {
             ResponseEntity<Boolean> response = organizationClient.organizationExists(organizationId);
@@ -154,6 +164,8 @@ public class AuthServiceImpl implements AuthService {
         UUID teamId = getTeamIdForUser(savedUser.getId());
 
         String jwtToken = jwtUtil.generateToken(userDetails, savedUser.getId(), organizationId, departmentId, teamId);
+        RefreshToken refreshToken = createRefreshToken(savedUser);
+        setAuthCookies(response, jwtToken, refreshToken.getToken());
 
         return AuthResponse.builder()
                 .success(true)
@@ -210,7 +222,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public AuthResponse authenticate(AuthRequest request) {
+    public AuthResponse authenticate(AuthRequest request, HttpServletResponse response) {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -220,18 +232,14 @@ public class AuthServiceImpl implements AuthService {
             );
 
             UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
-
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
             UUID organizationId = user.getOrganizationId();
-
-            // Fetch department and team IDs for the user
             UUID departmentId = getDepartmentIdForUser(user.getId());
             UUID teamId = getTeamIdForUser(user.getId());
-
             String jwtToken = jwtUtil.generateToken(userDetails, user.getId(), organizationId, departmentId, teamId);
-
+            RefreshToken refreshToken = createRefreshToken(user);
+            setAuthCookies(response, jwtToken, refreshToken.getToken());
             return AuthResponse.builder()
                     .success(true)
                     .token(jwtToken)
@@ -243,5 +251,65 @@ public class AuthServiceImpl implements AuthService {
         } catch (AuthenticationException e) {
             throw new IllegalArgumentException("Authentication failed: Invalid email or password");
         }
+    }
+
+    public AuthResponse refreshAccessToken(String refreshToken, HttpServletResponse response) {
+        RefreshToken tokenEntity = refreshTokenRepository.findByToken(refreshToken)
+                .filter(rt -> rt.getExpiryDate().isAfter(Instant.now()))
+                .orElse(null);
+        if (tokenEntity == null) {
+            return AuthResponse.builder().success(false).message("Invalid or expired refresh token").build();
+        }
+        User user = tokenEntity.getUser();
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        UUID organizationId = user.getOrganizationId();
+        UUID departmentId = getDepartmentIdForUser(user.getId());
+        UUID teamId = getTeamIdForUser(user.getId());
+        String jwtToken = jwtUtil.generateToken(userDetails, user.getId(), organizationId, departmentId, teamId);
+        // Optionally rotate refresh token
+        refreshTokenRepository.delete(tokenEntity);
+        RefreshToken newRefreshToken = createRefreshToken(user);
+        setAuthCookies(response, jwtToken, newRefreshToken.getToken());
+        return AuthResponse.builder()
+                .success(true)
+                .token(jwtToken)
+                .username(user.getUsername())
+                .organizationId(organizationId)
+                .roles(user.getRoles().stream().map(Role::getName).toList())
+                .message("Token refreshed successfully")
+                .build();
+    }
+
+    public RefreshToken createRefreshToken(User user) {
+        String token = UUID.randomUUID().toString();
+        Instant expiry = Instant.now().plusMillis(refreshExpiration);
+        RefreshToken refreshToken = new RefreshToken(token, expiry, user);
+        return refreshTokenRepository.save(refreshToken);
+    }
+
+    public boolean validateRefreshToken(String token) {
+        return refreshTokenRepository.findByToken(token)
+                .filter(rt -> rt.getExpiryDate().isAfter(Instant.now()))
+                .isPresent();
+    }
+
+    public void deleteRefreshToken(String token) {
+        refreshTokenRepository.findByToken(token).ifPresent(refreshTokenRepository::delete);
+    }
+
+    private void setAuthCookies(HttpServletResponse response, String accessToken, String refreshToken) {
+        javax.servlet.http.Cookie accessCookie = new javax.servlet.http.Cookie("access_token", accessToken);
+        accessCookie.setHttpOnly(true);
+        accessCookie.setPath("/");
+        accessCookie.setMaxAge(60 * 15); // 15 min
+        accessCookie.setSecure(true);
+        response.addCookie(accessCookie);
+
+        javax.servlet.http.Cookie refreshCookie = new javax.servlet.http.Cookie("refresh_token", refreshToken);
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setPath("/api/auth/refresh");
+        refreshCookie.setMaxAge((int) (refreshExpiration / 1000));
+        refreshCookie.setSecure(true);
+        response.addCookie(refreshCookie);
     }
 }
