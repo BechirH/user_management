@@ -41,18 +41,27 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String token = null;
         final String authorizationHeader = request.getHeader("Authorization");
+        System.out.println("Authorization header: " + (authorizationHeader != null ? "present" : "null"));
+        
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             token = authorizationHeader.substring(7);
+            System.out.println("Token found in Authorization header");
         } else if (request.getCookies() != null) {
+            System.out.println("Cookies found: " + request.getCookies().length);
             for (Cookie cookie : request.getCookies()) {
+                System.out.println("Cookie: " + cookie.getName() + " = " + (cookie.getValue() != null ? "present" : "null"));
                 if ("access_token".equals(cookie.getName())) {
                     token = cookie.getValue();
+                    System.out.println("Token found in access_token cookie");
                     break;
                 }
             }
+        } else {
+            System.out.println("No cookies found");
         }
 
         if (token == null) {
+            System.out.println("No token found, proceeding without authentication");
             filterChain.doFilter(request, response);
             return;
         }
@@ -60,6 +69,7 @@ public class JwtFilter extends OncePerRequestFilter {
         try {
             final Claims claims = jwtUtil.getAllClaimsFromToken(token);
             final String username = jwtUtil.extractUsername(token);
+            System.out.println("Token validated for user: " + username);
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 List<String> authorities = claims.get("authorities", List.class);
@@ -77,8 +87,10 @@ public class JwtFilter extends OncePerRequestFilter {
                         new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+                System.out.println("Authentication set for user: " + username);
             }
         } catch (Exception e) {
+            System.out.println("Token validation failed: " + e.getMessage());
             SecurityContextHolder.clearContext();
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT token");
             return;

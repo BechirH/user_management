@@ -68,14 +68,16 @@ public class AuthController {
         accessCookie.setHttpOnly(true);
         accessCookie.setPath("/");
         accessCookie.setMaxAge(0);
-        accessCookie.setSecure(true);
+        // Remove setSecure for development (HTTP)
+        // accessCookie.setSecure(true);
         response.addCookie(accessCookie);
 
         jakarta.servlet.http.Cookie refreshCookie = new jakarta.servlet.http.Cookie("refresh_token", "");
         refreshCookie.setHttpOnly(true);
         refreshCookie.setPath("/api/auth/refresh");
         refreshCookie.setMaxAge(0);
-        refreshCookie.setSecure(true);
+        // Remove setSecure for development (HTTP)
+        // refreshCookie.setSecure(true);
         response.addCookie(refreshCookie);
 
         // Optionally: Remove refresh token from DB

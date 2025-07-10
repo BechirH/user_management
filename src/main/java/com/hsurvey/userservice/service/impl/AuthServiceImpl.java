@@ -298,14 +298,16 @@ public class AuthServiceImpl implements AuthService {
         accessCookie.setHttpOnly(true);
         accessCookie.setPath("/");
         accessCookie.setMaxAge(60 * 15); // 15 min
-        accessCookie.setSecure(true);
+        // Remove setSecure for development (HTTP)
+        // accessCookie.setSecure(true);
         response.addCookie(accessCookie);
 
         jakarta.servlet.http.Cookie refreshCookie = new jakarta.servlet.http.Cookie("refresh_token", refreshToken);
         refreshCookie.setHttpOnly(true);
         refreshCookie.setPath("/api/auth/refresh");
         refreshCookie.setMaxAge((int) (refreshExpiration / 1000));
-        refreshCookie.setSecure(true);
+        // Remove setSecure for development (HTTP)
+        // refreshCookie.setSecure(true);
         response.addCookie(refreshCookie);
     }
 }
