@@ -78,10 +78,20 @@ public class OrganizationContextUtil {
         }
 
         HttpServletRequest request = attributes.getRequest();
+        
+        // First, try to get token from Authorization header
         String authHeader = request.getHeader("Authorization");
-
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             return authHeader.substring(7);
+        }
+        
+        // If not found in header, try to get from cookies
+        if (request.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
         }
 
         return null;
