@@ -63,9 +63,9 @@ public class AuthServiceImpl implements AuthService {
         }
 
         try {
-            ResponseEntity<Boolean> response = organizationClient.organizationExists(orgId);
-            if (response == null || !response.getStatusCode().is2xxSuccessful() ||
-                    !Boolean.TRUE.equals(response.getBody())) {
+            ResponseEntity<Boolean> orgResponse = organizationClient.organizationExists(orgId);
+            if (orgResponse == null || !orgResponse.getStatusCode().is2xxSuccessful() ||
+                    !Boolean.TRUE.equals(orgResponse.getBody())) {
                 throw new EntityNotFoundException("Organization not found");
             }
         } catch (EntityNotFoundException e) {
@@ -119,9 +119,9 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse registerAdmin(AdminRegisterRequest request, UUID organizationId, HttpServletResponse response) {
 
         try {
-            ResponseEntity<Boolean> response = organizationClient.organizationExists(organizationId);
-            if (response == null || !response.getStatusCode().is2xxSuccessful() ||
-                    !Boolean.TRUE.equals(response.getBody())) {
+            ResponseEntity<Boolean> orgResponse = organizationClient.organizationExists(organizationId);
+            if (orgResponse == null || !orgResponse.getStatusCode().is2xxSuccessful() ||
+                    !Boolean.TRUE.equals(orgResponse.getBody())) {
                 throw new EntityNotFoundException("Organization not found");
             }
         } catch (EntityNotFoundException e) {
@@ -298,14 +298,14 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void setAuthCookies(HttpServletResponse response, String accessToken, String refreshToken) {
-        javax.servlet.http.Cookie accessCookie = new javax.servlet.http.Cookie("access_token", accessToken);
+        jakarta.servlet.http.Cookie accessCookie = new jakarta.servlet.http.Cookie("access_token", accessToken);
         accessCookie.setHttpOnly(true);
         accessCookie.setPath("/");
         accessCookie.setMaxAge(60 * 15); // 15 min
         accessCookie.setSecure(true);
         response.addCookie(accessCookie);
 
-        javax.servlet.http.Cookie refreshCookie = new javax.servlet.http.Cookie("refresh_token", refreshToken);
+        jakarta.servlet.http.Cookie refreshCookie = new jakarta.servlet.http.Cookie("refresh_token", refreshToken);
         refreshCookie.setHttpOnly(true);
         refreshCookie.setPath("/api/auth/refresh");
         refreshCookie.setMaxAge((int) (refreshExpiration / 1000));
