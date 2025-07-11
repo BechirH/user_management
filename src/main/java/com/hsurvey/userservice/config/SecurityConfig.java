@@ -1,6 +1,6 @@
 package com.hsurvey.userservice.config;
 
-import com.hsurvey.userservice.filter.JwtFilter;
+import com.hsurvey.userservice.filter.GatewayAuthenticationFilter;
 import com.hsurvey.userservice.service.CustomUserDetailsService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
@@ -38,7 +38,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
-    private final JwtFilter jwtFilter;
+    private final GatewayAuthenticationFilter gatewayAuthenticationFilter;
 
     // Whitelisted endpoints
     private static final String[] AUTH_WHITELIST = {
@@ -49,9 +49,9 @@ public class SecurityConfig {
             "/actuator/health"
     };
 
-    public SecurityConfig(CustomUserDetailsService userDetailsService, JwtFilter jwtFilter) {
+    public SecurityConfig(CustomUserDetailsService userDetailsService, GatewayAuthenticationFilter gatewayAuthenticationFilter) {
         this.userDetailsService = userDetailsService;
-        this.jwtFilter = jwtFilter;
+        this.gatewayAuthenticationFilter = gatewayAuthenticationFilter;
     }
 
 
@@ -59,10 +59,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 // Enable CSRF for cookie-based auth (use CookieCsrfTokenRepository for SPA/frontend)
-                .csrf(csrf -> csrf
-                    .ignoringRequestMatchers("/api/auth/**") // Allow auth endpoints without CSRF
-                    .csrfTokenRepository(org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse())
-                )
+                .csrf(csrf -> csrf.disable()) // Disable CSRF for API gateway approach
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
@@ -81,7 +78,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint())
                         .accessDeniedHandler(jwtAccessDeniedHandler())
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(gatewayAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

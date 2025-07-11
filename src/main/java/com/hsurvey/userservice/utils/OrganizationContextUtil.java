@@ -14,25 +14,17 @@ import java.util.UUID;
 @Component
 public class OrganizationContextUtil {
 
-    private final JwtUtil jwtUtil;
-
-    public OrganizationContextUtil(JwtUtil jwtUtil) {
-        this.jwtUtil = jwtUtil;
-    }
-
-
     public UUID getCurrentOrganizationId() {
-        String token = extractTokenFromRequest();
-        if (token == null) {
-            throw new SecurityException("No authentication token found");
+        String organizationId = extractHeaderValue("X-Organization-Id");
+        if (organizationId == null || organizationId.trim().isEmpty()) {
+            throw new SecurityException("No organization context found in request headers");
         }
 
-        UUID organizationId = jwtUtil.extractOrganizationId(token);
-        if (organizationId == null) {
-            throw new SecurityException("No organization context found in token");
+        try {
+            return UUID.fromString(organizationId);
+        } catch (IllegalArgumentException e) {
+            throw new SecurityException("Invalid organization ID format");
         }
-
-        return organizationId;
     }
 
 
@@ -71,32 +63,15 @@ public class OrganizationContextUtil {
     }
 
 
-    private String extractTokenFromRequest() {
+    private String extractHeaderValue(String headerName) {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {
             return null;
         }
 
         HttpServletRequest request = attributes.getRequest();
-        
-        // First, try to get token from Authorization header
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return authHeader.substring(7);
-        }
-        
-        // If not found in header, try to get from cookies
-        if (request.getCookies() != null) {
-            for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
-                if ("access_token".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-
-        return null;
+        return request.getHeader(headerName);
     }
-
 
     public UUID getCurrentOrganizationIdOrNull() {
         try {
@@ -111,7 +86,6 @@ public class OrganizationContextUtil {
             throw new IllegalArgumentException("Resource organization ID cannot be null");
         }
 
-
         if (isRootAdmin()) {
             return;
         }
@@ -123,14 +97,12 @@ public class OrganizationContextUtil {
         }
     }
 
-
     public boolean hasOrganizationAccess(UUID organizationId) {
         if (organizationId == null) {
             return false;
         }
 
         try {
-
             if (isRootAdmin()) {
                 return true;
             }
@@ -141,8 +113,6 @@ public class OrganizationContextUtil {
             return false;
         }
     }
-
-
 
     public boolean hasAuthority(String authority) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -156,38 +126,38 @@ public class OrganizationContextUtil {
     }
 
     public UUID getCurrentDepartmentId() {
-        String token = extractTokenFromRequest();
-        if (token == null) {
+        String departmentId = extractHeaderValue("X-Department-Id");
+        if (departmentId == null || departmentId.trim().isEmpty()) {
             return null;
         }
 
-        return jwtUtil.extractDepartmentId(token);
+        try {
+            return UUID.fromString(departmentId);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     public UUID getCurrentTeamId() {
-        String token = extractTokenFromRequest();
-        if (token == null) {
+        String teamId = extractHeaderValue("X-Team-Id");
+        if (teamId == null || teamId.trim().isEmpty()) {
             return null;
         }
 
-        return jwtUtil.extractTeamId(token);
+        try {
+            return UUID.fromString(teamId);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     public boolean hasDepartmentId() {
-        String token = extractTokenFromRequest();
-        if (token == null) {
-            return false;
-        }
-
-        return jwtUtil.hasDepartmentId(token);
+        String departmentId = extractHeaderValue("X-Department-Id");
+        return departmentId != null && !departmentId.trim().isEmpty();
     }
 
     public boolean hasTeamId() {
-        String token = extractTokenFromRequest();
-        if (token == null) {
-            return false;
-        }
-
-        return jwtUtil.hasTeamId(token);
+        String teamId = extractHeaderValue("X-Team-Id");
+        return teamId != null && !teamId.trim().isEmpty();
     }
 }

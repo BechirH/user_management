@@ -16,7 +16,7 @@ import com.hsurvey.userservice.service.OrganizationRoleService;
 import com.hsurvey.userservice.service.clients.OrganizationClient;
 import com.hsurvey.userservice.service.clients.DepartmentClient;
 import com.hsurvey.userservice.service.clients.TeamClient;
-import com.hsurvey.userservice.utils.JwtUtil;
+
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +41,6 @@ import jakarta.servlet.http.HttpServletResponse;
 public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final CustomUserDetailsService userDetailsService;
     private final OrganizationClient organizationClient;
@@ -100,9 +99,10 @@ public class AuthServiceImpl implements AuthService {
         UUID departmentId = getDepartmentIdForUser(savedUser.getId());
         UUID teamId = getTeamIdForUser(savedUser.getId());
 
-        String jwtToken = jwtUtil.generateToken(userDetails, savedUser.getId(), orgId, departmentId, teamId);
+        // Note: JWT token generation is now handled by the gateway
+        // The gateway will validate the user and generate tokens
         RefreshToken refreshToken = createRefreshToken(savedUser);
-        setAuthCookies(response, jwtToken, refreshToken.getToken());
+        setAuthCookies(response, "", refreshToken.getToken()); // Empty token as gateway handles JWT
 
         return AuthResponse.builder()
                 .success(true)
@@ -162,9 +162,9 @@ public class AuthServiceImpl implements AuthService {
         UUID departmentId = getDepartmentIdForUser(savedUser.getId());
         UUID teamId = getTeamIdForUser(savedUser.getId());
 
-        String jwtToken = jwtUtil.generateToken(userDetails, savedUser.getId(), organizationId, departmentId, teamId);
+        // Note: JWT token generation is now handled by the gateway
         RefreshToken refreshToken = createRefreshToken(savedUser);
-        setAuthCookies(response, jwtToken, refreshToken.getToken());
+        setAuthCookies(response, "", refreshToken.getToken()); // Empty token as gateway handles JWT
 
         return AuthResponse.builder()
                 .success(true)
@@ -235,9 +235,9 @@ public class AuthServiceImpl implements AuthService {
             UUID organizationId = user.getOrganizationId();
             UUID departmentId = getDepartmentIdForUser(user.getId());
             UUID teamId = getTeamIdForUser(user.getId());
-            String jwtToken = jwtUtil.generateToken(userDetails, user.getId(), organizationId, departmentId, teamId);
+            // Note: JWT token generation is now handled by the gateway
             RefreshToken refreshToken = createRefreshToken(user);
-            setAuthCookies(response, jwtToken, refreshToken.getToken());
+            setAuthCookies(response, "", refreshToken.getToken()); // Empty token as gateway handles JWT
             return AuthResponse.builder()
                     .success(true)
                     .username(userDetails.getUsername())
@@ -262,11 +262,11 @@ public class AuthServiceImpl implements AuthService {
         UUID organizationId = user.getOrganizationId();
         UUID departmentId = getDepartmentIdForUser(user.getId());
         UUID teamId = getTeamIdForUser(user.getId());
-        String jwtToken = jwtUtil.generateToken(userDetails, user.getId(), organizationId, departmentId, teamId);
+        // Note: JWT token generation is now handled by the gateway
         // Optionally rotate refresh token
         refreshTokenRepository.delete(tokenEntity);
         RefreshToken newRefreshToken = createRefreshToken(user);
-        setAuthCookies(response, jwtToken, newRefreshToken.getToken());
+        setAuthCookies(response, "", newRefreshToken.getToken()); // Empty token as gateway handles JWT
         return AuthResponse.builder()
                 .success(true)
                 .username(user.getUsername())

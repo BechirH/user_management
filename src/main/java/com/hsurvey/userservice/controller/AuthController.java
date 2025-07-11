@@ -14,15 +14,14 @@ import java.util.UUID;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Cookie;
-import com.hsurvey.userservice.utils.JwtUtil;
 import java.util.List;
+import java.util.Arrays;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
-    private final JwtUtil jwtUtil;
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest authRequest, HttpServletResponse response) {
@@ -94,40 +93,36 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<AuthResponse> getCurrentUser(HttpServletRequest request) {
-        String token = null;
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("access_token".equals(cookie.getName())) {
-                    token = cookie.getValue();
-                    break;
-                }
-            }
-        }
+        String username = request.getHeader("X-Username");
+        String userId = request.getHeader("X-User-Id");
+        String organizationId = request.getHeader("X-Organization-Id");
+        String authoritiesHeader = request.getHeader("X-Authorities");
         
-        if (token == null) {
+        if (username == null) {
             return ResponseEntity.status(401).body(AuthResponse.builder()
                     .success(false)
-                    .message("No access token found")
+                    .message("No user information found")
                     .build());
         }
         
         try {
-            String username = jwtUtil.extractUsername(token);
-            UUID userId = jwtUtil.extractUserId(token);
-            UUID organizationId = jwtUtil.extractOrganizationId(token);
-            List<String> authorities = jwtUtil.extractAuthorities(token);
+            List<String> authorities = authoritiesHeader != null ? 
+                Arrays.asList(authoritiesHeader.split(",")) : List.of();
+            
+            UUID orgId = organizationId != null && !organizationId.trim().isEmpty() ? 
+                UUID.fromString(organizationId) : null;
             
             return ResponseEntity.ok(AuthResponse.builder()
                     .success(true)
                     .username(username)
-                    .organizationId(organizationId)
+                    .organizationId(orgId)
                     .roles(authorities)
                     .message("Current user info retrieved")
                     .build());
         } catch (Exception e) {
             return ResponseEntity.status(401).body(AuthResponse.builder()
                     .success(false)
-                    .message("Invalid token")
+                    .message("Error processing user information")
                     .build());
         }
     }
