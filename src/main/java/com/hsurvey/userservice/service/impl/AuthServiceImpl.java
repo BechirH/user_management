@@ -250,17 +250,14 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private String generateJwtToken(User user, UUID departmentId, UUID teamId) {
-        List<String> authorities = user.getRoles().stream()
-                .map(Role::getName)
-                .toList();
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         
         return jwtUtil.generateToken(
-            user.getUsername(),
+            userDetails,
             user.getId(),
             user.getOrganizationId(),
             departmentId,
-            teamId,
-            authorities
+            teamId
         );
     }
 

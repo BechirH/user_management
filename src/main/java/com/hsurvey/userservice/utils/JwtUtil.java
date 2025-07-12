@@ -6,19 +6,20 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
-
-import javax.crypto.SecretKey;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.security.Key;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import javax.crypto.SecretKey;
 
 @Component
 public class JwtUtil {
     private final String secret;
     private final long expiration;
-    private final SecretKey signingKey;
+    private final Key signingKey;
 
     public JwtUtil(@Value("${jwt.secret}") String secret,
                    @Value("${jwt.expiration}") long expiration) {
@@ -27,16 +28,42 @@ public class JwtUtil {
         this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
     }
 
-    public String generateToken(String username, UUID userId, UUID organizationId, UUID departmentId, UUID teamId, List<String> authorities) {
+    public String generateToken(UserDetails userDetails, UUID userId, UUID organizationId, UUID departmentId, UUID teamId) {
+        Map<String, Object> claims = new HashMap<>();
+
+        claims.put("authorities", userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList()));
+
+        if (userId != null) {
+            claims.put("userId", userId.toString());
+        }
+
+        if (organizationId != null) {
+            claims.put("organizationId", organizationId.toString());
+        }
+
+        if (departmentId != null) {
+            claims.put("departmentId", departmentId.toString());
+        }
+
+        if (teamId != null) {
+            claims.put("teamId", teamId.toString());
+        }
+
+        return createToken(claims, userDetails.getUsername());
+    }
+
+    public String generateToken(UserDetails userDetails, UUID userId, UUID organizationId) {
+        return generateToken(userDetails, userId, organizationId, null, null);
+    }
+
+    private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
-                .subject(username)
-                .claim("userId", userId != null ? userId.toString() : null)
-                .claim("organizationId", organizationId != null ? organizationId.toString() : null)
-                .claim("departmentId", departmentId != null ? departmentId.toString() : null)
-                .claim("teamId", teamId != null ? teamId.toString() : null)
-                .claim("authorities", authorities)
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .setClaims(claims)
+                .setSubject(subject)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -90,9 +117,9 @@ public class JwtUtil {
         try {
             Claims claims = getAllClaimsFromToken(token);
             List<String> authorities = (List<String>) claims.get("authorities");
-            return authorities != null ? authorities : List.of();
+            return authorities != null ? authorities : new ArrayList<>();
         } catch (Exception e) {
-            return List.of();
+            return new ArrayList<>();
         }
     }
 
@@ -107,21 +134,58 @@ public class JwtUtil {
 
     public Claims getAllClaimsFromToken(String token) {
         return Jwts.parser()
-                .verifyWith(signingKey)
+                .verifyWith((SecretKey) signingKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
     }
 
-    public Boolean validateToken(String token) {
-        try {
-            return !isTokenExpired(token);
-        } catch (Exception e) {
+    public Boolean validateToken(String token, UserDetails userDetails) {
+        final String username = extractUsername(token);
+        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    }
+
+    public Boolean validateTokenWithOrganization(String token, UserDetails userDetails, UUID expectedOrgId) {
+        if (!validateToken(token, userDetails)) {
             return false;
         }
+
+        UUID tokenOrgId = extractOrganizationId(token);
+        return Objects.equals(tokenOrgId, expectedOrgId);
+    }
+
+    public Boolean validateTokenWithUserAndOrganization(String token, UserDetails userDetails, UUID expectedUserId, UUID expectedOrgId) {
+        if (!validateToken(token, userDetails)) {
+            return false;
+        }
+
+        UUID tokenUserId = extractUserId(token);
+        UUID tokenOrgId = extractOrganizationId(token);
+
+        return Objects.equals(tokenUserId, expectedUserId) && Objects.equals(tokenOrgId, expectedOrgId);
     }
 
     private Boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
+    }
+
+    public Boolean hasOrganizationId(String token) {
+        UUID orgId = extractOrganizationId(token);
+        return orgId != null;
+    }
+
+    public Boolean hasUserId(String token) {
+        UUID userId = extractUserId(token);
+        return userId != null;
+    }
+
+    public Boolean hasDepartmentId(String token) {
+        UUID departmentId = extractDepartmentId(token);
+        return departmentId != null;
+    }
+
+    public Boolean hasTeamId(String token) {
+        UUID teamId = extractTeamId(token);
+        return teamId != null;
     }
 } 
