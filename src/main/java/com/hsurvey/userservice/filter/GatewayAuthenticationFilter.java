@@ -49,8 +49,14 @@ public class GatewayAuthenticationFilter extends OncePerRequestFilter {
             String userId = request.getHeader("X-User-Id");
             String organizationId = request.getHeader("X-Organization-Id");
             String authoritiesHeader = request.getHeader("X-Authorities");
+            
+            System.out.println("User Service - X-Username: " + username);
+            System.out.println("User Service - X-User-Id: " + userId);
+            System.out.println("User Service - X-Organization-Id: " + organizationId);
+            System.out.println("User Service - X-Authorities: " + authoritiesHeader);
 
             if (username == null) {
+                System.out.println("User Service - Authentication failed: No username found");
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "No user information found");
                 return;
             }
