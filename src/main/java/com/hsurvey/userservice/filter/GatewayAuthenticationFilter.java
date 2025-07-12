@@ -26,6 +26,8 @@ public class GatewayAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
+        System.out.println("User Service - Request: " + request.getMethod() + " " + path);
+        
         if (path.startsWith("/api/auth")) {
             filterChain.doFilter(request, response);
             return;
@@ -33,7 +35,10 @@ public class GatewayAuthenticationFilter extends OncePerRequestFilter {
 
         // Check if request is authenticated by gateway
         String authenticated = request.getHeader("X-Authenticated");
+        System.out.println("User Service - X-Authenticated header: " + authenticated);
+        
         if (!"true".equals(authenticated)) {
+            System.out.println("User Service - Authentication failed: X-Authenticated is not 'true'");
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Request not authenticated by gateway");
             return;
         }
