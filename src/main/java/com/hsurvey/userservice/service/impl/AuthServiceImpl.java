@@ -16,6 +16,7 @@ import com.hsurvey.userservice.service.OrganizationRoleService;
 import com.hsurvey.userservice.service.clients.OrganizationClient;
 import com.hsurvey.userservice.service.clients.DepartmentClient;
 import com.hsurvey.userservice.service.clients.TeamClient;
+import com.hsurvey.userservice.utils.JwtUtil;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -32,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -48,6 +50,7 @@ public class AuthServiceImpl implements AuthService {
     private final DepartmentClient departmentClient;
     private final TeamClient teamClient;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final JwtUtil jwtUtil;
     @Value("${jwt.refreshExpiration:604800000}") // 7 days default
     private long refreshExpiration;
 
@@ -99,10 +102,10 @@ public class AuthServiceImpl implements AuthService {
         UUID departmentId = getDepartmentIdForUser(savedUser.getId());
         UUID teamId = getTeamIdForUser(savedUser.getId());
 
-        // Note: JWT token generation is now handled by the gateway
-        // The gateway will validate the user and generate tokens
+        // Generate JWT token with complete user context
+        String jwtToken = generateJwtToken(savedUser, departmentId, teamId);
         RefreshToken refreshToken = createRefreshToken(savedUser);
-        setAuthCookies(response, "", refreshToken.getToken()); // Empty token as gateway handles JWT
+        setAuthCookies(response, jwtToken, refreshToken.getToken());
 
         return AuthResponse.builder()
                 .success(true)
@@ -162,9 +165,10 @@ public class AuthServiceImpl implements AuthService {
         UUID departmentId = getDepartmentIdForUser(savedUser.getId());
         UUID teamId = getTeamIdForUser(savedUser.getId());
 
-        // Note: JWT token generation is now handled by the gateway
+        // Generate JWT token with complete user context
+        String jwtToken = generateJwtToken(savedUser, departmentId, teamId);
         RefreshToken refreshToken = createRefreshToken(savedUser);
-        setAuthCookies(response, "", refreshToken.getToken()); // Empty token as gateway handles JWT
+        setAuthCookies(response, jwtToken, refreshToken.getToken());
 
         return AuthResponse.builder()
                 .success(true)
@@ -174,7 +178,6 @@ public class AuthServiceImpl implements AuthService {
                 .message("Admin registered successfully")
                 .build();
     }
-
 
     private boolean adminAlreadyExistsForOrganization(UUID organizationId) {
         Role adminRole;
@@ -191,31 +194,24 @@ public class AuthServiceImpl implements AuthService {
     private UUID getDepartmentIdForUser(UUID userId) {
         try {
             ResponseEntity<UUID> response = departmentClient.getDepartmentIdByUserId(userId);
-            if (response != null && response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                log.debug("Found department ID {} for user {}", response.getBody(), userId);
+            if (response != null && response.getStatusCode().is2xxSuccessful()) {
                 return response.getBody();
             }
         } catch (Exception e) {
-
-            log.debug("Could not fetch department ID for user {}: {}", userId, e.getMessage());
+            log.warn("Failed to get department ID for user: {}", userId, e);
         }
-        log.debug("No department ID found for user {}", userId);
         return null;
     }
 
     private UUID getTeamIdForUser(UUID userId) {
         try {
             ResponseEntity<UUID> response = teamClient.getTeamIdByUserId(userId);
-            if (response != null && response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                log.debug("Found team ID {} for user {}", response.getBody(), userId);
+            if (response != null && response.getStatusCode().is2xxSuccessful()) {
                 return response.getBody();
             }
         } catch (Exception e) {
-            // Log the exception but don't fail the authentication
-            // User might not be assigned to a team yet
-            log.debug("Could not fetch team ID for user {}: {}", userId, e.getMessage());
+            log.warn("Failed to get team ID for user: {}", userId, e);
         }
-        log.debug("No team ID found for user {}", userId);
         return null;
     }
 
@@ -235,9 +231,12 @@ public class AuthServiceImpl implements AuthService {
             UUID organizationId = user.getOrganizationId();
             UUID departmentId = getDepartmentIdForUser(user.getId());
             UUID teamId = getTeamIdForUser(user.getId());
-            // Note: JWT token generation is now handled by the gateway
+            
+            // Generate JWT token with complete user context
+            String jwtToken = generateJwtToken(user, departmentId, teamId);
             RefreshToken refreshToken = createRefreshToken(user);
-            setAuthCookies(response, "", refreshToken.getToken()); // Empty token as gateway handles JWT
+            setAuthCookies(response, jwtToken, refreshToken.getToken());
+            
             return AuthResponse.builder()
                     .success(true)
                     .username(userDetails.getUsername())
@@ -248,6 +247,21 @@ public class AuthServiceImpl implements AuthService {
         } catch (AuthenticationException e) {
             throw new IllegalArgumentException("Authentication failed: Invalid email or password");
         }
+    }
+
+    private String generateJwtToken(User user, UUID departmentId, UUID teamId) {
+        List<String> authorities = user.getRoles().stream()
+                .map(Role::getName)
+                .toList();
+        
+        return jwtUtil.generateToken(
+            user.getUsername(),
+            user.getId(),
+            user.getOrganizationId(),
+            departmentId,
+            teamId,
+            authorities
+        );
     }
 
     public AuthResponse refreshAccessToken(String refreshToken, HttpServletResponse response) {
@@ -262,11 +276,14 @@ public class AuthServiceImpl implements AuthService {
         UUID organizationId = user.getOrganizationId();
         UUID departmentId = getDepartmentIdForUser(user.getId());
         UUID teamId = getTeamIdForUser(user.getId());
-        // Note: JWT token generation is now handled by the gateway
+        
+        // Generate new JWT token with complete user context
+        String jwtToken = generateJwtToken(user, departmentId, teamId);
         // Optionally rotate refresh token
         refreshTokenRepository.delete(tokenEntity);
         RefreshToken newRefreshToken = createRefreshToken(user);
-        setAuthCookies(response, "", newRefreshToken.getToken()); // Empty token as gateway handles JWT
+        setAuthCookies(response, jwtToken, newRefreshToken.getToken());
+        
         return AuthResponse.builder()
                 .success(true)
                 .username(user.getUsername())

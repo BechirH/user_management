@@ -71,7 +71,7 @@ public class OrganizationContextUtil {
 
         HttpServletRequest request = attributes.getRequest();
         return request.getHeader(headerName);
-    }
+                }
 
     public UUID getCurrentOrganizationIdOrNull() {
         try {
