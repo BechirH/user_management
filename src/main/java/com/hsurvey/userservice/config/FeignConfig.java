@@ -15,9 +15,12 @@ public class FeignConfig {
     @Bean
     public RequestInterceptor requestInterceptor() {
         return requestTemplate -> {
+            System.out.println("FeignConfig - Intercepting request to: " + requestTemplate.url());
+            
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes != null) {
                 HttpServletRequest request = attributes.getRequest();
+                System.out.println("FeignConfig - Request URI: " + request.getRequestURI());
                 
                 // Forward authentication headers from Gateway
                 Enumeration<String> headerNames = request.getHeaderNames();
@@ -30,8 +33,11 @@ public class FeignConfig {
                         headerName.equals("Authorization") || 
                         headerName.equals("Cookie")) {
                         requestTemplate.header(headerName, headerValue);
+                        System.out.println("FeignConfig - Forwarding header: " + headerName + " = " + headerValue);
                     }
                 }
+            } else {
+                System.out.println("FeignConfig - No request attributes found");
             }
         };
     }

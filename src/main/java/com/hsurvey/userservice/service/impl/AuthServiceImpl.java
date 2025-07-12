@@ -78,6 +78,8 @@ public class AuthServiceImpl implements AuthService {
             throw e;
         } catch (Exception e) {
             System.out.println("User Service - Organization verification error: " + e.getMessage());
+            System.out.println("User Service - Exception type: " + e.getClass().getSimpleName());
+            e.printStackTrace();
             throw new RuntimeException("Failed to verify organization", e);
         }
 
