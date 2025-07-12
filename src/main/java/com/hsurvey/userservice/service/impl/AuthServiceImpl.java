@@ -65,14 +65,19 @@ public class AuthServiceImpl implements AuthService {
         }
 
         try {
+            System.out.println("User Service - Verifying organization: " + orgId);
             ResponseEntity<Boolean> orgResponse = organizationClient.organizationExists(orgId);
+            System.out.println("User Service - Organization response: " + orgResponse);
             if (orgResponse == null || !orgResponse.getStatusCode().is2xxSuccessful() ||
                     !Boolean.TRUE.equals(orgResponse.getBody())) {
+                System.out.println("User Service - Organization verification failed");
                 throw new EntityNotFoundException("Organization not found");
             }
+            System.out.println("User Service - Organization verified successfully");
         } catch (EntityNotFoundException e) {
             throw e;
         } catch (Exception e) {
+            System.out.println("User Service - Organization verification error: " + e.getMessage());
             throw new RuntimeException("Failed to verify organization", e);
         }
 
