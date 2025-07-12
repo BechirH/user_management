@@ -31,8 +31,15 @@ public class JwtUtil {
     public String generateToken(UserDetails userDetails, UUID userId, UUID organizationId, UUID departmentId, UUID teamId) {
         Map<String, Object> claims = new HashMap<>();
 
+        // Add authorities (permissions)
         claims.put("authorities", userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList()));
+
+        // Add roles (role names)
+        claims.put("roles", userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(authority -> !authority.contains("_")) // Filter out permissions, keep only role names
                 .collect(Collectors.toList()));
 
         if (userId != null) {
@@ -118,6 +125,17 @@ public class JwtUtil {
             Claims claims = getAllClaimsFromToken(token);
             List<String> authorities = (List<String>) claims.get("authorities");
             return authorities != null ? authorities : new ArrayList<>();
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> extractRoles(String token) {
+        try {
+            Claims claims = getAllClaimsFromToken(token);
+            List<String> roles = (List<String>) claims.get("roles");
+            return roles != null ? roles : new ArrayList<>();
         } catch (Exception e) {
             return new ArrayList<>();
         }
