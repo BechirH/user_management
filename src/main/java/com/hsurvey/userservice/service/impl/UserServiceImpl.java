@@ -253,13 +253,13 @@ public UserDTO updateUserInOrganization(UUID id, UserDTO userDTO, UUID organizat
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
 
-        // Check if relationship already exists
+
         if (!userRepository.hasRole(userId, roleId)) {
-            // Add the role relationship directly in the database
+
             userRepository.addRoleToUser(userId, roleId);
         }
 
-        // Fetch the updated user with roles
+
         User updatedUser = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
 

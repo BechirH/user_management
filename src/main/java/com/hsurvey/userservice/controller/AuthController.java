@@ -55,31 +55,31 @@ public class AuthController {
         if (refreshToken == null) {
             return ResponseEntity.badRequest().body(AuthResponse.builder().success(false).message("Refresh token missing").build());
         }
-        // Call a new method in AuthServiceImpl to handle refresh logic (to be implemented next)
+
         AuthResponse authResponse = ((com.hsurvey.userservice.service.impl.AuthServiceImpl)authService).refreshAccessToken(refreshToken, response);
         return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletResponse response, HttpServletRequest request) {
-        // Remove cookies
+
         jakarta.servlet.http.Cookie accessCookie = new jakarta.servlet.http.Cookie("access_token", "");
         accessCookie.setHttpOnly(true);
         accessCookie.setPath("/");
         accessCookie.setMaxAge(0);
-        // Remove setSecure for development (HTTP)
-        // accessCookie.setSecure(true);
+        // Removed setSecure for development (HTTP)
+
         response.addCookie(accessCookie);
 
         jakarta.servlet.http.Cookie refreshCookie = new jakarta.servlet.http.Cookie("refresh_token", "");
         refreshCookie.setHttpOnly(true);
         refreshCookie.setPath("/api/auth/refresh");
         refreshCookie.setMaxAge(0);
-        // Remove setSecure for development (HTTP)
-        // refreshCookie.setSecure(true);
+        // Removed setSecure for development (HTTP)
+
         response.addCookie(refreshCookie);
 
-        // Optionally: Remove refresh token from DB
+
         if (request.getCookies() != null) {
             for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
                 if ("refresh_token".equals(cookie.getName())) {

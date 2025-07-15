@@ -65,21 +65,14 @@ public class AuthServiceImpl implements AuthService {
         }
 
         try {
-            System.out.println("User Service - Verifying organization: " + orgId);
             ResponseEntity<Boolean> orgResponse = organizationClient.organizationExists(orgId);
-            System.out.println("User Service - Organization response: " + orgResponse);
             if (orgResponse == null || !orgResponse.getStatusCode().is2xxSuccessful() ||
                     !Boolean.TRUE.equals(orgResponse.getBody())) {
-                System.out.println("User Service - Organization verification failed");
                 throw new EntityNotFoundException("Organization not found");
             }
-            System.out.println("User Service - Organization verified successfully");
         } catch (EntityNotFoundException e) {
             throw e;
         } catch (Exception e) {
-            System.out.println("User Service - Organization verification error: " + e.getMessage());
-            System.out.println("User Service - Exception type: " + e.getClass().getSimpleName());
-            e.printStackTrace();
             throw new RuntimeException("Failed to verify organization", e);
         }
 
@@ -168,11 +161,11 @@ public class AuthServiceImpl implements AuthService {
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
 
-        // Fetch department and team IDs for the user
+
         UUID departmentId = getDepartmentIdForUser(savedUser.getId());
         UUID teamId = getTeamIdForUser(savedUser.getId());
 
-        // Generate JWT token with complete user context
+
         String jwtToken = generateJwtToken(savedUser, departmentId, teamId);
         RefreshToken refreshToken = createRefreshToken(savedUser);
         setAuthCookies(response, jwtToken, refreshToken.getToken());
@@ -281,9 +274,9 @@ public class AuthServiceImpl implements AuthService {
         UUID departmentId = getDepartmentIdForUser(user.getId());
         UUID teamId = getTeamIdForUser(user.getId());
         
-        // Generate new JWT token with complete user context
+
         String jwtToken = generateJwtToken(user, departmentId, teamId);
-        // Optionally rotate refresh token
+
         refreshTokenRepository.delete(tokenEntity);
         RefreshToken newRefreshToken = createRefreshToken(user);
         setAuthCookies(response, jwtToken, newRefreshToken.getToken());
@@ -319,7 +312,7 @@ public class AuthServiceImpl implements AuthService {
         accessCookie.setHttpOnly(true);
         accessCookie.setPath("/");
         accessCookie.setMaxAge(60 * 15); // 15 min
-        // Remove setSecure for development (HTTP)
+        // Removed setSecure for development (HTTP)
         // accessCookie.setSecure(true);
         response.addCookie(accessCookie);
 
@@ -327,7 +320,7 @@ public class AuthServiceImpl implements AuthService {
         refreshCookie.setHttpOnly(true);
         refreshCookie.setPath("/api/auth/refresh");
         refreshCookie.setMaxAge((int) (refreshExpiration / 1000));
-        // Remove setSecure for development (HTTP)
+        // Removed setSecure for development (HTTP)
         // refreshCookie.setSecure(true);
         response.addCookie(refreshCookie);
     }

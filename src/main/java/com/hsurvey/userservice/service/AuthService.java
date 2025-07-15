@@ -13,5 +13,5 @@ public interface AuthService {
     AuthResponse register(RegisterRequest request, HttpServletResponse response);
     AuthResponse registerAdmin(AdminRegisterRequest request, UUID organizationId, HttpServletResponse response);
     AuthResponse authenticate(AuthRequest request, HttpServletResponse response);
-    // Refresh token methods can be added here if needed
+
 }

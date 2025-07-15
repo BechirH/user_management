@@ -26,42 +26,33 @@ public class GatewayAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
-        System.out.println("User Service - Request: " + request.getMethod() + " " + path);
         
         if (path.startsWith("/api/auth")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Check if request is authenticated by gateway
+
         String authenticated = request.getHeader("X-Authenticated");
-        System.out.println("User Service - X-Authenticated header: " + authenticated);
         
         if (!"true".equals(authenticated)) {
-            System.out.println("User Service - Authentication failed: X-Authenticated is not 'true'");
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Request not authenticated by gateway");
             return;
         }
 
         try {
-            // Extract user information from gateway headers
+
             String username = request.getHeader("X-Username");
             String userId = request.getHeader("X-User-Id");
             String organizationId = request.getHeader("X-Organization-Id");
             String authoritiesHeader = request.getHeader("X-Authorities");
-            
-            System.out.println("User Service - X-Username: " + username);
-            System.out.println("User Service - X-User-Id: " + userId);
-            System.out.println("User Service - X-Organization-Id: " + organizationId);
-            System.out.println("User Service - X-Authorities: " + authoritiesHeader);
 
             if (username == null) {
-                System.out.println("User Service - Authentication failed: No username found");
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "No user information found");
                 return;
             }
 
-            // Convert authorities string to GrantedAuthority list
+
             List<GrantedAuthority> grantedAuthorities = Arrays.stream(authoritiesHeader.split(","))
                     .filter(auth -> !auth.trim().isEmpty())
                     .map(SimpleGrantedAuthority::new)
