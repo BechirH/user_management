@@ -16,7 +16,7 @@ public class Permission {
     private UUID id;
 
     @Column(nullable = false)
-    private String name;  // e.g., "USER_READ", "USER_CREATE"
+    private String name;  //  "USER_READ", "USER_CREATE"
 
     @Column(name = "organization_id", nullable = false)
     private UUID organizationId;

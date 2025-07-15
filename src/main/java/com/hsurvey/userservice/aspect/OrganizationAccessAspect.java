@@ -29,13 +29,13 @@ public class OrganizationAccessAspect {
     public void validateOrganizationAccess(JoinPoint joinPoint, RequireOrganizationAccess requireOrganizationAccess) {
         logger.debug("Validating organization access for method: {}", joinPoint.getSignature().getName());
 
-        // Allow root admin to bypass validation if configured
+
         if (requireOrganizationAccess.allowRootAdmin() && organizationContextUtil.isRootAdmin()) {
             logger.debug("Root admin access - bypassing organization validation");
             return;
         }
 
-        // Extract target organization ID from method parameters
+
         UUID targetOrganizationId = extractOrganizationId(joinPoint, requireOrganizationAccess.organizationIdParam());
 
         if (targetOrganizationId == null) {
@@ -44,7 +44,7 @@ public class OrganizationAccessAspect {
             throw new OrganizationAccessException("Organization ID parameter is required but not found");
         }
 
-        // Get current user's organization context
+
         UUID currentOrganizationId;
         try {
             currentOrganizationId = organizationContextUtil.getCurrentOrganizationId();
@@ -53,7 +53,7 @@ public class OrganizationAccessAspect {
             throw new OrganizationAccessException("No valid organization context found");
         }
 
-        // Validate organization access
+
         if (!currentOrganizationId.equals(targetOrganizationId)) {
             logger.warn("Organization access denied. Current: {}, Requested: {}, Method: {}",
                     currentOrganizationId, targetOrganizationId, joinPoint.getSignature().getName());
@@ -68,7 +68,7 @@ public class OrganizationAccessAspect {
         Parameter[] parameters = signature.getMethod().getParameters();
         Object[] args = joinPoint.getArgs();
 
-        // First, try to find parameter by exact name match
+
         for (int i = 0; i < parameters.length; i++) {
             Parameter parameter = parameters[i];
             if (parameter.getName().equals(parameterName) && args[i] != null) {
@@ -83,7 +83,6 @@ public class OrganizationAccessAspect {
             }
         }
 
-        // Fallback: try to find any UUID parameter (for cases where parameter names aren't preserved)
         for (int i = 0; i < parameters.length; i++) {
             Parameter parameter = parameters[i];
             Object arg = args[i];
