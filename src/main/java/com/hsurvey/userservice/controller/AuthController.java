@@ -5,6 +5,9 @@ import com.hsurvey.userservice.dto.AuthResponse;
 import com.hsurvey.userservice.dto.RegisterRequest;
 import com.hsurvey.userservice.dto.AdminRegisterRequest;
 import com.hsurvey.userservice.service.AuthService;
+import com.hsurvey.userservice.service.UserService;
+import com.hsurvey.userservice.entities.User;
+import com.hsurvey.userservice.repositories.UserRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +25,8 @@ import java.util.Arrays;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
+    private final UserService userService;
+    private final UserRepository userRepository;
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest authRequest, HttpServletResponse response) {
@@ -96,7 +101,6 @@ public class AuthController {
         String username = request.getHeader("X-Username");
         String userId = request.getHeader("X-User-Id");
         String organizationId = request.getHeader("X-Organization-Id");
-        String authoritiesHeader = request.getHeader("X-Authorities");
         
         if (username == null) {
             return ResponseEntity.status(401).body(AuthResponse.builder()
@@ -106,23 +110,29 @@ public class AuthController {
         }
         
         try {
-            List<String> authorities = authoritiesHeader != null ? 
-                Arrays.asList(authoritiesHeader.split(",")) : List.of();
+            // Get the actual user from database to fetch their roles
+            User user = userRepository.findByEmail(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            // Extract role names from user's roles
+            List<String> roles = user.getRoles().stream()
+                    .map(role -> role.getName())
+                    .toList();
             
             UUID orgId = organizationId != null && !organizationId.trim().isEmpty() ? 
-                UUID.fromString(organizationId) : null;
+                UUID.fromString(organizationId) : user.getOrganizationId();
             
             return ResponseEntity.ok(AuthResponse.builder()
                     .success(true)
                     .username(username)
                     .organizationId(orgId)
-                    .roles(authorities)
+                    .roles(roles)
                     .message("Current user info retrieved")
                     .build());
         } catch (Exception e) {
             return ResponseEntity.status(401).body(AuthResponse.builder()
                     .success(false)
-                    .message("Error processing user information")
+                    .message("Error processing user information: " + e.getMessage())
                     .build());
         }
     }
