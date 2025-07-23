@@ -15,6 +15,10 @@ public interface RoleService {
     RoleDTO getRoleById(UUID roleId);
     RoleDTO getRoleByIdAndOrganization(UUID roleId, UUID organizationId);
 
+    // Update methods
+    RoleDTO updateRole(UUID roleId, RoleDTO roleDTO);
+    RoleDTO updateRoleInOrganization(UUID roleId, RoleDTO roleDTO, UUID organizationId);
+
     // Delete methods
     void deleteRoleById(UUID roleId);
     void deleteRoleByIdAndOrganization(UUID roleId, UUID organizationId);

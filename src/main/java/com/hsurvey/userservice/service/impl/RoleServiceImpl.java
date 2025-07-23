@@ -289,4 +289,79 @@ public class RoleServiceImpl implements RoleService {
 
         roleRepository.save(role);
     }
+
+    // UPDATE METHODS
+    @Override
+    @Transactional
+    public RoleDTO updateRole(UUID roleId, RoleDTO roleDTO) {
+        if (roleId == null) {
+            throw new IllegalArgumentException("Role ID cannot be null");
+        }
+        if (roleDTO == null) {
+            throw new IllegalArgumentException("Role data cannot be null");
+        }
+
+        Role existingRole = roleRepository.findById(roleId)
+                .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
+
+        // Prevent changing organizationId
+        if (roleDTO.getOrganizationId() != null &&
+                !existingRole.getOrganizationId().equals(roleDTO.getOrganizationId())) {
+            throw new IllegalArgumentException("Cannot change organization ID of existing role");
+        }
+
+        // Check for name uniqueness within the organization
+        if (!existingRole.getName().equals(roleDTO.getName()) &&
+                roleRepository.existsByNameAndOrganizationId(roleDTO.getName(), existingRole.getOrganizationId())) {
+            throw new IllegalArgumentException("Role with name '" + roleDTO.getName() +
+                    "' already exists in this organization");
+        }
+
+        existingRole.setName(roleDTO.getName());
+        existingRole.setDescription(roleDTO.getDescription());
+
+        Role updatedRole = roleRepository.save(existingRole);
+        return roleMapper.toDto(updatedRole);
+    }
+
+    @Override
+    @Transactional
+    @RequireOrganizationAccess(organizationIdParam = "organizationId")
+    public RoleDTO updateRoleInOrganization(UUID roleId, RoleDTO roleDTO, UUID organizationId) {
+        if (roleId == null) {
+            throw new IllegalArgumentException("Role ID cannot be null");
+        }
+        if (organizationId == null) {
+            throw new IllegalArgumentException("Organization ID cannot be null");
+        }
+        if (roleDTO == null) {
+            throw new IllegalArgumentException("Role data cannot be null");
+        }
+
+        Role existingRole = roleRepository.findById(roleId)
+                .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
+
+        if (!existingRole.getOrganizationId().equals(organizationId)) {
+            throw new EntityNotFoundException("Role not found in the specified organization");
+        }
+
+        // Prevent changing organizationId
+        if (roleDTO.getOrganizationId() != null &&
+                !existingRole.getOrganizationId().equals(roleDTO.getOrganizationId())) {
+            throw new IllegalArgumentException("Cannot change organization ID of existing role");
+        }
+
+        // Check for name uniqueness within the organization
+        if (!existingRole.getName().equals(roleDTO.getName()) &&
+                roleRepository.existsByNameAndOrganizationId(roleDTO.getName(), organizationId)) {
+            throw new IllegalArgumentException("Role with name '" + roleDTO.getName() +
+                    "' already exists in this organization");
+        }
+
+        existingRole.setName(roleDTO.getName());
+        existingRole.setDescription(roleDTO.getDescription());
+
+        Role updatedRole = roleRepository.save(existingRole);
+        return roleMapper.toDto(updatedRole);
+    }
 }
