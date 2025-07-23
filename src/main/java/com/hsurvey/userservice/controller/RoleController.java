@@ -111,4 +111,17 @@
 
             return ResponseEntity.noContent().build();
         }
+
+        @PutMapping("/{roleId}")
+        @PreAuthorize("hasAnyAuthority('ROLE_UPDATE','SYS_ADMIN_ROOT')")
+        public ResponseEntity<RoleDTO> updateRole(@PathVariable UUID roleId, @RequestBody RoleDTO roleDTO) {
+            RoleDTO updatedRole;
+            if (organizationContextUtil.isRootAdmin()) {
+                updatedRole = roleService.updateRole(roleId, roleDTO);
+            } else {
+                UUID organizationId = organizationContextUtil.getCurrentOrganizationId();
+                updatedRole = roleService.updateRoleInOrganization(roleId, roleDTO, organizationId);
+            }
+            return ResponseEntity.ok(updatedRole);
+        }
     }
