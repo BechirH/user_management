@@ -51,6 +51,9 @@ public class OrganizationRoleService {
 
     private Set<Permission> createDefaultPermissions(UUID organizationId) {
         List<String> defaultPermissionNames = Arrays.asList(
+                "ORG_MANAGER",
+                "DEPARTMENT_MANAGER",
+                "TEAM_MANAGER",
                 "PERMISSION_CREATE",
                 "PERMISSION_READ",
                 "PERMISSION_UPDATE",
