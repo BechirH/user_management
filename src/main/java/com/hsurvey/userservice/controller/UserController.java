@@ -47,7 +47,7 @@ public class UserController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('USER_READ','SYS_ADMIN_ROOT')")
+    @PreAuthorize("hasAnyAuthority('USER_READ','SYS_ADMIN_ROOT','DEPARTMENT_MANAGER','TEAM_MANAGER')")
     public ResponseEntity<List<UserDTO>> getAllUsers() {
         List<UserDTO> users;
 
@@ -66,7 +66,7 @@ public class UserController {
         return ResponseEntity.ok(exists);
     }
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('USER_READ','SYS_ADMIN_ROOT')")
+    @PreAuthorize("hasAnyAuthority('USER_READ','SYS_ADMIN_ROOT','DEPARTMENT_MANAGER','TEAM_MANAGER')")
     public ResponseEntity<UserDTO> getUserById(@PathVariable UUID id) {
         UserDTO userDTO;
 

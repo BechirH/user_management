@@ -107,14 +107,14 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
     }
-    @ExceptionHandler(AdminAlreadyExistsException.class)
-    public ResponseEntity<Map<String, Object>> handleAdminAlreadyExistsException(AdminAlreadyExistsException ex) {
+    @ExceptionHandler(OrganizationManagerAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleOrganizationManagerAlreadyExistsException(OrganizationManagerAlreadyExistsException ex) {
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("status", HttpStatus.FORBIDDEN.value());
-        response.put("error", "Admin Already Exists");
+        response.put("error", "Organization Manager Already Exists");
         response.put("message", ex.getMessage());
-        response.put("details", "Only one admin user is allowed per organization");
+        response.put("details", "Only one organization manager is allowed per organization");
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 }
