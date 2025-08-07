@@ -33,34 +33,34 @@ public class OrganizationRoleService {
                 .permissions(new HashSet<>())
                 .build();
 
-        // Create ORGANIZATION_MANAGER role - has all permissions except DEPARTMENT_MANAGER and TEAM_MANAGER
+        // Create ORGANIZATION MANAGER role - has all permissions except DEPARTMENT_MANAGER and TEAM_MANAGER
         Set<Permission> organizationManagerPermissions = new HashSet<>(allPermissions);
         organizationManagerPermissions.removeIf(permission -> 
             permission.getName().equals("DEPARTMENT_MANAGER") || 
             permission.getName().equals("TEAM_MANAGER"));
 
         Role organizationManagerRole = Role.builder()
-                .name("ORGANIZATION_MANAGER")
+                .name("ORGANIZATION MANAGER")
                 .organizationId(organizationId)
                 .description("Organization manager role with all permissions except department and team management")
                 .permissions(organizationManagerPermissions)
                 .build();
 
-        // Create DEPARTMENT_MANAGER role - specific permissions
+        // Create DEPARTMENT MANAGER role - specific permissions
         Set<Permission> departmentManagerPermissions = getDepartmentManagerPermissions(allPermissions);
 
         Role departmentManagerRole = Role.builder()
-                .name("DEPARTMENT_MANAGER")
+                .name("DEPARTMENT MANAGER")
                 .organizationId(organizationId)
                 .description("Department manager role with survey, option, question, team, and department permissions")
                 .permissions(departmentManagerPermissions)
                 .build();
 
-        // Create TEAM_MANAGER role - specific permissions
+        // Create TEAM MANAGER role - specific permissions
         Set<Permission> teamManagerPermissions = getTeamManagerPermissions(allPermissions);
 
         Role teamManagerRole = Role.builder()
-                .name("TEAM_MANAGER")
+                .name("TEAM MANAGER")
                 .organizationId(organizationId)
                 .description("Team manager role with survey, option, question, and team permissions")
                 .permissions(teamManagerPermissions)
@@ -70,13 +70,13 @@ public class OrganizationRoleService {
         if (!roleRepository.existsByNameAndOrganizationId("USER", organizationId)) {
             roleRepository.save(userRole);
         }
-        if (!roleRepository.existsByNameAndOrganizationId("ORGANIZATION_MANAGER", organizationId)) {
+        if (!roleRepository.existsByNameAndOrganizationId("ORGANIZATION MANAGER", organizationId)) {
             roleRepository.save(organizationManagerRole);
         }
-        if (!roleRepository.existsByNameAndOrganizationId("DEPARTMENT_MANAGER", organizationId)) {
+        if (!roleRepository.existsByNameAndOrganizationId("DEPARTMENT MANAGER", organizationId)) {
             roleRepository.save(departmentManagerRole);
         }
-        if (!roleRepository.existsByNameAndOrganizationId("TEAM_MANAGER", organizationId)) {
+        if (!roleRepository.existsByNameAndOrganizationId("TEAM MANAGER", organizationId)) {
             roleRepository.save(teamManagerRole);
         }
     }
@@ -229,18 +229,18 @@ public class OrganizationRoleService {
     }
 
     public Role getDefaultOrganizationManagerRole(UUID organizationId) {
-        return roleRepository.findByNameAndOrganizationId("ORGANIZATION_MANAGER", organizationId)
-                .orElseThrow(() -> new RuntimeException("Default ORGANIZATION_MANAGER role not found for organization."));
+        return roleRepository.findByNameAndOrganizationId("ORGANIZATION MANAGER", organizationId)
+                .orElseThrow(() -> new RuntimeException("Default ORGANIZATION MANAGER role not found for organization."));
     }
 
     public Role getDefaultDepartmentManagerRole(UUID organizationId) {
-        return roleRepository.findByNameAndOrganizationId("DEPARTMENT_MANAGER", organizationId)
-                .orElseThrow(() -> new RuntimeException("Default DEPARTMENT_MANAGER role not found for organization."));
+        return roleRepository.findByNameAndOrganizationId("DEPARTMENT MANAGER", organizationId)
+                .orElseThrow(() -> new RuntimeException("Default DEPARTMENT MANAGER role not found for organization."));
     }
 
     public Role getDefaultTeamManagerRole(UUID organizationId) {
-        return roleRepository.findByNameAndOrganizationId("TEAM_MANAGER", organizationId)
-                .orElseThrow(() -> new RuntimeException("Default TEAM_MANAGER role not found for organization."));
+        return roleRepository.findByNameAndOrganizationId("TEAM MANAGER", organizationId)
+                .orElseThrow(() -> new RuntimeException("Default TEAM MANAGER role not found for organization."));
     }
 
     // Keep the old method for backward compatibility, but redirect to ORGANIZATION_MANAGER

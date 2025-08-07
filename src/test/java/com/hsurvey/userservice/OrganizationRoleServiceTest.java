@@ -49,9 +49,9 @@ class OrganizationRoleServiceTest {
 
         // Mock role repository methods
         when(roleRepository.existsByNameAndOrganizationId("USER", organizationId)).thenReturn(false);
-        when(roleRepository.existsByNameAndOrganizationId("ORGANIZATION_MANAGER", organizationId)).thenReturn(false);
-        when(roleRepository.existsByNameAndOrganizationId("DEPARTMENT_MANAGER", organizationId)).thenReturn(false);
-        when(roleRepository.existsByNameAndOrganizationId("TEAM_MANAGER", organizationId)).thenReturn(false);
+        when(roleRepository.existsByNameAndOrganizationId("ORGANIZATION MANAGER", organizationId)).thenReturn(false);
+        when(roleRepository.existsByNameAndOrganizationId("DEPARTMENT MANAGER", organizationId)).thenReturn(false);
+        when(roleRepository.existsByNameAndOrganizationId("TEAM MANAGER", organizationId)).thenReturn(false);
 
         // Execute the method
         organizationRoleService.createDefaultRolesForOrganization(organizationId);
@@ -62,15 +62,15 @@ class OrganizationRoleServiceTest {
             role.getPermissions().isEmpty()));
         
         verify(roleRepository, times(1)).save(argThat(role -> 
-            role.getName().equals("ORGANIZATION_MANAGER") && 
+            role.getName().equals("ORGANIZATION MANAGER") && 
             !role.getPermissions().isEmpty()));
         
         verify(roleRepository, times(1)).save(argThat(role -> 
-            role.getName().equals("DEPARTMENT_MANAGER") && 
+            role.getName().equals("DEPARTMENT MANAGER") && 
             !role.getPermissions().isEmpty()));
         
         verify(roleRepository, times(1)).save(argThat(role -> 
-            role.getName().equals("TEAM_MANAGER") && 
+            role.getName().equals("TEAM MANAGER") && 
             !role.getPermissions().isEmpty()));
     }
 
@@ -96,73 +96,73 @@ class OrganizationRoleServiceTest {
     @Test
     void testGetDefaultOrganizationManagerRole() {
         Role mockOrgManagerRole = Role.builder()
-                .name("ORGANIZATION_MANAGER")
+                .name("ORGANIZATION MANAGER")
                 .organizationId(organizationId)
                 .description("Organization manager role")
                 .permissions(new HashSet<>())
                 .build();
 
-        when(roleRepository.findByNameAndOrganizationId("ORGANIZATION_MANAGER", organizationId))
+        when(roleRepository.findByNameAndOrganizationId("ORGANIZATION MANAGER", organizationId))
                 .thenReturn(Optional.of(mockOrgManagerRole));
 
         Role result = organizationRoleService.getDefaultOrganizationManagerRole(organizationId);
 
         assertNotNull(result);
-        assertEquals("ORGANIZATION_MANAGER", result.getName());
+        assertEquals("ORGANIZATION MANAGER", result.getName());
     }
 
     @Test
     void testGetDefaultDepartmentManagerRole() {
         Role mockDeptManagerRole = Role.builder()
-                .name("DEPARTMENT_MANAGER")
+                .name("DEPARTMENT MANAGER")
                 .organizationId(organizationId)
                 .description("Department manager role")
                 .permissions(new HashSet<>())
                 .build();
 
-        when(roleRepository.findByNameAndOrganizationId("DEPARTMENT_MANAGER", organizationId))
+        when(roleRepository.findByNameAndOrganizationId("DEPARTMENT MANAGER", organizationId))
                 .thenReturn(Optional.of(mockDeptManagerRole));
 
         Role result = organizationRoleService.getDefaultDepartmentManagerRole(organizationId);
 
         assertNotNull(result);
-        assertEquals("DEPARTMENT_MANAGER", result.getName());
+        assertEquals("DEPARTMENT MANAGER", result.getName());
     }
 
     @Test
     void testGetDefaultTeamManagerRole() {
         Role mockTeamManagerRole = Role.builder()
-                .name("TEAM_MANAGER")
+                .name("TEAM MANAGER")
                 .organizationId(organizationId)
                 .description("Team manager role")
                 .permissions(new HashSet<>())
                 .build();
 
-        when(roleRepository.findByNameAndOrganizationId("TEAM_MANAGER", organizationId))
+        when(roleRepository.findByNameAndOrganizationId("TEAM MANAGER", organizationId))
                 .thenReturn(Optional.of(mockTeamManagerRole));
 
         Role result = organizationRoleService.getDefaultTeamManagerRole(organizationId);
 
         assertNotNull(result);
-        assertEquals("TEAM_MANAGER", result.getName());
+        assertEquals("TEAM MANAGER", result.getName());
     }
 
     @Test
     void testBackwardCompatibilityGetDefaultAdminRole() {
         Role mockOrgManagerRole = Role.builder()
-                .name("ORGANIZATION_MANAGER")
+                .name("ORGANIZATION MANAGER")
                 .organizationId(organizationId)
                 .description("Organization manager role")
                 .permissions(new HashSet<>())
                 .build();
 
-        when(roleRepository.findByNameAndOrganizationId("ORGANIZATION_MANAGER", organizationId))
+        when(roleRepository.findByNameAndOrganizationId("ORGANIZATION MANAGER", organizationId))
                 .thenReturn(Optional.of(mockOrgManagerRole));
 
         Role result = organizationRoleService.getDefaultAdminRole(organizationId);
 
         assertNotNull(result);
-        assertEquals("ORGANIZATION_MANAGER", result.getName());
+        assertEquals("ORGANIZATION MANAGER", result.getName());
     }
 
     private Set<Permission> createMockPermissions() {
