@@ -7,7 +7,7 @@ import com.hsurvey.userservice.dto.AdminRegisterRequest;
 import com.hsurvey.userservice.entities.Role;
 import com.hsurvey.userservice.entities.User;
 import com.hsurvey.userservice.entities.RefreshToken;
-import com.hsurvey.userservice.exception.AdminAlreadyExistsException;
+import com.hsurvey.userservice.exception.OrganizationManagerAlreadyExistsException;
 import com.hsurvey.userservice.repositories.UserRepository;
 import com.hsurvey.userservice.repositories.RefreshTokenRepository;
 import com.hsurvey.userservice.service.AuthService;
@@ -133,8 +133,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
 
-        if (adminAlreadyExistsForOrganization(organizationId)) {
-            throw new AdminAlreadyExistsException("Admin user already exists for this organization");
+        if (organizationManagerAlreadyExistsForOrganization(organizationId)) {
+            throw new OrganizationManagerAlreadyExistsException("Organization manager already exists for this organization");
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -147,17 +147,17 @@ public class AuthServiceImpl implements AuthService {
 
         organizationRoleService.createDefaultRolesForOrganization(organizationId);
 
-        Role adminRole = organizationRoleService.getDefaultAdminRole(organizationId);
+        Role organizationManagerRole = organizationRoleService.getDefaultOrganizationManagerRole(organizationId);
 
-        User adminUser = User.builder()
+        User organizationManagerUser = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .organizationId(organizationId)
-                .roles(Set.of(adminRole))
+                .roles(Set.of(organizationManagerRole))
                 .build();
 
-        User savedUser = userRepository.save(adminUser);
+        User savedUser = userRepository.save(organizationManagerUser);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
 
@@ -175,20 +175,20 @@ public class AuthServiceImpl implements AuthService {
                 .username(savedUser.getUsername())
                 .organizationId(organizationId)
                 .roles(savedUser.getRoles().stream().map(Role::getName).toList())
-                .message("Admin registered successfully")
+                .message("Organization manager registered successfully")
                 .build();
     }
 
-    private boolean adminAlreadyExistsForOrganization(UUID organizationId) {
-        Role adminRole;
+    private boolean organizationManagerAlreadyExistsForOrganization(UUID organizationId) {
+        Role organizationManagerRole;
         try {
-            adminRole = organizationRoleService.getDefaultAdminRole(organizationId);
+            organizationManagerRole = organizationRoleService.getDefaultOrganizationManagerRole(organizationId);
         } catch (RuntimeException e) {
 
             return false;
         }
 
-        return userRepository.existsByOrganizationIdAndRolesContaining(organizationId, adminRole);
+        return userRepository.existsByOrganizationIdAndRolesContaining(organizationId, organizationManagerRole);
     }
 
     private UUID getDepartmentIdForUser(UUID userId) {
